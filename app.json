@@ -49,7 +49,10 @@
       "reactCompiler": true
     },
     "extra": {
-      "catalogUrl": ""
+      "catalogUrl": "",
+      "eas": {
+        "projectId": "8d73090e-7faa-45aa-8344-c1d892f9f49c"
+      }
     }
   }
 }
