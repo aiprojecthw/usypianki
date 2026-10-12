@@ -9,7 +9,8 @@
  *       "title": "Jeżyk, który bał się ciemności",
  *       "durationSec": 725,
  *       "audioUrl": "https://<bucket>.r2.dev/audio/jezyk-ciemnosc.mp3",
- *       "coverColor": "#2B3A5E",             // opcjonalnie
+ *       "coverUrl": "https://<bucket>.r2.dev/covers/jezyk-ciemnosc.png", // opcjonalnie, kwadrat
+ *       "coverColor": "#2B3A5E",             // opcjonalnie, tło gdy brak okładki
  *       "featured": true,                    // opcjonalnie: bajka „Na dziś”
  *       "sizeBytes": 6400000                 // opcjonalnie: pokazywane przy pobieraniu
  *     }
@@ -21,6 +22,7 @@ export type Story = {
   title: string;
   durationSec: number;
   audioUrl: string;
+  coverUrl?: string;
   coverColor?: string;
   featured?: boolean;
   sizeBytes?: number;

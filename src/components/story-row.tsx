@@ -52,7 +52,7 @@ export function StoryRow({ story, onPress, action }: Props) {
           minHeight: 64,
           opacity: pressed ? 0.6 : 1,
         })}>
-        <Cover color={story.coverColor} width={56} height={56} radius={14} />
+        <Cover story={story} width={56} height={56} radius={14} />
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700' }}>{story.title}</Text>
           <Text style={{ color: colors.textMuted, fontSize: 13 }}>{meta}</Text>

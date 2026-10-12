@@ -1,18 +1,23 @@
+import { Image } from 'expo-image';
 import { View, type DimensionValue } from 'react-native';
 
 import { Icon } from '@/components/icon';
+import { localCovers } from '@/data/local-covers';
+import type { Story } from '@/data/types';
 import { colors } from '@/theme';
 
 type Props = {
-  color?: string;
+  story: Pick<Story, 'id' | 'coverUrl' | 'coverColor'>;
   width: DimensionValue;
   height: number;
   radius: number;
-  /** Rozmiar ikony księżyca; pominięty = bez ikony (małe okładki na liście). */
+  /** Rozmiar ikony księżyca, gdy brak ilustracji; pominięty = bez ikony. */
   iconSize?: number;
 };
 
-export function Cover({ color, width, height, radius, iconSize }: Props) {
+export function Cover({ story, width, height, radius, iconSize }: Props) {
+  const source = localCovers[story.id] ?? (story.coverUrl ? { uri: story.coverUrl } : undefined);
+
   return (
     <View
       style={{
@@ -20,11 +25,23 @@ export function Cover({ color, width, height, radius, iconSize }: Props) {
         height,
         borderRadius: radius,
         borderCurve: 'continuous',
-        backgroundColor: color ?? colors.surfaceRaised,
+        overflow: 'hidden',
+        backgroundColor: story.coverColor ?? colors.surfaceRaised,
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-      {iconSize ? <Icon name="moon" size={iconSize} color={colors.accent} /> : null}
+      {source ? (
+        <Image
+          source={source}
+          style={{ width: '100%', height: '100%' }}
+          contentFit="cover"
+          transition={200}
+          cachePolicy="disk"
+          accessibilityIgnoresInvertColors
+        />
+      ) : iconSize ? (
+        <Icon name="moon" size={iconSize} color={colors.butter} />
+      ) : null}
     </View>
   );
 }

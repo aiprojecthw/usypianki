@@ -21,14 +21,14 @@ export default function NightScreen() {
         onPress={toggle}
         accessibilityRole="button"
         accessibilityLabel={playing ? 'Pauza' : 'Odtwórz'}
-        style={{ width: 120, height: 120, borderRadius: 60, borderWidth: 1.5, borderColor: '#3A3629', alignItems: 'center', justifyContent: 'center' }}>
+        style={{ width: 120, height: 120, borderRadius: 60, borderWidth: 1.5, borderColor: '#262338', alignItems: 'center', justifyContent: 'center' }}>
         <Icon name={playing ? 'pause' : 'play'} size={44} color={colors.nightButton} />
       </Pressable>
       <View style={{ alignItems: 'center', gap: 6 }}>
         <Text style={{ color: colors.nightText, fontSize: 15 }}>
           {playing ? `Zostało ${minutes} min · potem cisza` : 'Wstrzymano'}
         </Text>
-        <Text style={{ color: '#4A4535', fontSize: 13 }}>Dotknij ekranu, aby wrócić</Text>
+        <Text style={{ color: '#4A4563', fontSize: 13 }}>Dotknij ekranu, aby wrócić</Text>
       </View>
     </Pressable>
   );

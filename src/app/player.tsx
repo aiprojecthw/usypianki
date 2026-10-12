@@ -38,7 +38,7 @@ export default function PlayerScreen() {
         </View>
       ) : (
         <View style={{ flex: 1, paddingHorizontal: 28, alignItems: 'center', gap: 26 }}>
-          <Cover color={story.coverColor} width={280} height={280} radius={28} iconSize={120} />
+          <Cover story={story} width={280} height={280} radius={28} iconSize={120} />
 
           <View style={{ width: '100%', gap: 6 }}>
             <Text accessibilityRole="header" style={{ color: colors.text, fontSize: 23, fontWeight: '800', textAlign: 'center' }}>
@@ -56,7 +56,7 @@ export default function PlayerScreen() {
             accessible
             accessibilityRole="progressbar"
             accessibilityLabel={`Postęp: ${formatDuration(currentTime)} z ${formatDuration(duration)}`}>
-            <View style={{ height: 6, borderRadius: 3, backgroundColor: '#26304A', overflow: 'hidden' }}>
+            <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.surfaceRaised, overflow: 'hidden' }}>
               <View style={{ width: `${progress * 100}%`, height: 6, backgroundColor: colors.accent }} />
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -115,7 +115,7 @@ export default function PlayerScreen() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Wygaś ekran"
-                style={{ height: 48, paddingHorizontal: spacing.md, borderRadius: 24, borderWidth: 1, borderColor: '#3A4562', flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                style={{ height: 48, paddingHorizontal: spacing.md, borderRadius: 24, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                 <Icon name="moon" size={18} />
                 <Text style={{ color: colors.text, fontSize: 14, fontWeight: '700' }}>Wygaś ekran</Text>
               </Pressable>

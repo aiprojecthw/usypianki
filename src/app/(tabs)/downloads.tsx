@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -6,6 +7,7 @@ import { StoryRow } from '@/components/story-row';
 import { useIsOffline, useStartStory } from '@/components/use-start-story';
 import { useCatalog } from '@/data/catalog-provider';
 import { useDownloads } from '@/data/downloads-provider';
+import { illustrations } from '@/data/local-covers';
 import { colors, spacing, storiesCount } from '@/theme';
 
 export default function DownloadsScreen() {
@@ -42,7 +44,11 @@ export default function DownloadsScreen() {
 
       {items.length === 0 ? (
         <View style={{ alignItems: 'center', gap: spacing.sm, marginTop: spacing.xl, paddingHorizontal: spacing.md }}>
-          <Icon name="download" size={40} color={colors.textMuted} />
+          {illustrations.emptyDownloads ? (
+            <Image source={illustrations.emptyDownloads} style={{ width: 180, height: 180 }} contentFit="contain" />
+          ) : (
+            <Icon name="download" size={40} color={colors.textMuted} />
+          )}
           <Text style={{ color: colors.text, fontSize: 17, fontWeight: '700' }}>Nic jeszcze nie pobrano</Text>
           <Text style={{ color: colors.textMuted, fontSize: 14, textAlign: 'center' }}>
             Dotknij strzałki przy bajce w zakładce „Bajki”, żeby słuchać jej bez internetu, np. w podróży albo u babci.

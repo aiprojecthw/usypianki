@@ -57,7 +57,7 @@ export default function TimerSheet() {
           value={fadeOut}
           onValueChange={setFadeOut}
           accessibilityLabel="Ściszaj stopniowo"
-          trackColor={{ true: colors.accent, false: '#3A4562' }}
+          trackColor={{ true: colors.accent, false: colors.border }}
           thumbColor={colors.text}
         />
       </View>

@@ -86,7 +86,7 @@ export default function LibraryScreen() {
               gap: 14,
               opacity: pressed ? 0.85 : 1,
             })}>
-            <Cover color={featured.coverColor} width="100%" height={150} radius={16} iconSize={64} />
+            <Cover story={featured} width="100%" height={200} radius={16} iconSize={64} />
             <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12 }}>
               <View style={{ flex: 1, gap: 4 }}>
                 <Text style={{ color: colors.text, fontSize: 19, fontWeight: '800' }}>{featured.title}</Text>
