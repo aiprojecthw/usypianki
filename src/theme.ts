@@ -1,9 +1,9 @@
-// Pastelowa noc: tło to przygaszony granat z ilustracji (#161B33), a pastele
+// Pastelowa noc: tło to przygaszony granat z ilustracji (#131733), a pastele
 // (lawenda, brzoskwinia, mięta, masło) służą jako akcenty. Jasne pastelowe tło
 // świeciłoby wieczorem po oczach, dlatego pastele są tylko na wierzchu.
 export const colors = {
-  background: '#161B33',
-  surface: '#20274A',
+  background: '#131733',
+  surface: '#1D2245',
   surfaceRaised: '#2C3560',
   border: '#2A3157',
   text: '#F3EEE6',
