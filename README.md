@@ -1,56 +1,42 @@
-# Welcome to your Expo app 👋
+# Usypianki: Bajki na sen
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplikacja na Androida z bajkami audio do słuchania przed snem. Expo SDK 57, Expo Router.
 
-## Get started
+## Co jest w MVP
 
-1. Install dependencies
+- **Bajki**: lista z katalogu, bajka „Na dziś”, pobieranie na telefon.
+- **Odtwarzacz**: odtwarzanie w tle i przy zgaszonym ekranie, sterowanie z ekranu blokady, ±10 s.
+- **Wyłącznik czasowy**: po tej bajce / 10 / 20 / 30 min, stopniowe ściszanie przez ostatnią minutę.
+- **Tryb nocny**: prawie czarny ekran z jednym przyciskiem.
+- **Pobrane**: bajki offline, usuwanie, komunikat o braku internetu.
+- **Bez autoodtwarzania** kolejnych bajek, bez reklam, bez kont, bez analityki.
 
-   ```bash
-   npm install
-   ```
+## Katalog bajek (Cloudflare R2)
 
-2. Start the app
+Aplikacja pobiera listę bajek z pliku JSON, którego adres ustawia się w `app.json`:
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```json
+"extra": { "catalogUrl": "https://<twoj-bucket>.r2.dev/catalog.json" }
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Format pliku opisuje `src/data/types.ts`. Każda bajka to plik MP3 o nazwie `<id>.mp3`.
+Nowa bajka = nowy MP3 w buckecie + nowa pozycja w `catalog.json`. Aktualizacja aplikacji nie jest potrzebna.
 
-### Other setup steps
+Dopóki `catalogUrl` jest puste, aplikacja pokazuje 4 bajki testowe odtwarzające dołączony dźwięk próbny (`assets/audio/test.mp3`).
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Budowanie APK
 
-## Learn more
+1. Konto na expo.dev, projekt połączony z tym repo (`extra.eas.projectId` w `app.json`).
+2. Workflow `.eas/workflows/android-preview.yml`: uruchom ręcznie na expo.dev albo zrób push na gałąź `release`.
+3. Gotowy APK pobierasz z expo.dev i instalujesz na telefonie.
 
-To learn more about developing your project with Expo, look at the following resources:
+Odtwarzanie w tle wymaga zbudowanej aplikacji (APK). W Expo Go nie zadziała w pełni.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Praca lokalna
 
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+npm install
+npx expo start      # podgląd
+npx tsc --noEmit    # typy
+npx expo lint       # lint
+```

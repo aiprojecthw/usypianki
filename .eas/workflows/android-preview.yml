@@ -1,0 +1,17 @@
+# Testowy APK do instalacji na telefonie.
+# Uruchamiany ręcznie z expo.dev albo przez push na gałąź "release",
+# żeby każda drobna zmiana na main nie zużywała limitu darmowych buildów.
+name: Android – testowy APK
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [release]
+
+jobs:
+  build_android_preview:
+    name: Build Android APK (preview)
+    type: build
+    params:
+      platform: android
+      profile: preview
