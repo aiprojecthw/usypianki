@@ -1,3 +1,5 @@
+import { describe, expect, it } from '@jest/globals';
+
 import { daypartAt, DEFAULT_BOUNDS, formatClock, greetingFor, normalizeBounds, shiftBound } from '../daypart';
 
 const at = (h: number, m = 0) => new Date(2026, 9, 15, h, m);

@@ -1,3 +1,5 @@
+import { describe, expect, it } from '@jest/globals';
+
 import { fallbackCatalog } from '../fallback-catalog';
 import { isBundled, isPublished, parseCatalog } from '../types';
 

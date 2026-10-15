@@ -1,3 +1,5 @@
+import { describe, expect, it } from '@jest/globals';
+
 import { GATE_MAX, GATE_MIN, isGateAnswerCorrect, makeGateQuestion } from '../gate';
 
 describe('parent gate', () => {
