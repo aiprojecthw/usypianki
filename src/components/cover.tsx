@@ -1,21 +1,19 @@
 import { Image } from 'expo-image';
 import { View, type DimensionValue } from 'react-native';
 
-import { Icon } from '@/components/icon';
-import { localCovers } from '@/data/local-covers';
 import type { Story } from '@/data/types';
-import { colors } from '@/theme';
+import { localCovers, uiIcons } from '@/ui/media';
 
 type Props = {
   story: Pick<Story, 'id' | 'coverUrl' | 'coverColor'>;
   width: DimensionValue;
   height: number;
   radius: number;
-  /** Rozmiar ikony księżyca, gdy brak ilustracji; pominięty = bez ikony. */
-  iconSize?: number;
+  placeholderColor: string;
 };
 
-export function Cover({ story, width, height, radius, iconSize }: Props) {
+/** Okładka bajki; bez okładki pokazuje przygaszony półksiężyc na kolorze bajki. */
+export function Cover({ story, width, height, radius, placeholderColor }: Props) {
   const source = localCovers[story.id] ?? (story.coverUrl ? { uri: story.coverUrl } : undefined);
 
   return (
@@ -26,7 +24,7 @@ export function Cover({ story, width, height, radius, iconSize }: Props) {
         borderRadius: radius,
         borderCurve: 'continuous',
         overflow: 'hidden',
-        backgroundColor: story.coverColor ?? colors.surfaceRaised,
+        backgroundColor: story.coverColor ?? placeholderColor,
         alignItems: 'center',
         justifyContent: 'center',
       }}>
@@ -39,9 +37,9 @@ export function Cover({ story, width, height, radius, iconSize }: Props) {
           cachePolicy="disk"
           accessibilityIgnoresInvertColors
         />
-      ) : iconSize ? (
-        <Icon name="moon" size={iconSize} color={colors.butter} />
-      ) : null}
+      ) : (
+        <Image source={uiIcons.moon} style={{ width: height * 0.4, height: height * 0.4, opacity: 0.5 }} contentFit="contain" />
+      )}
     </View>
   );
 }

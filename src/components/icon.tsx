@@ -1,31 +1,27 @@
 import { SymbolView } from 'expo-symbols';
 import type { ComponentProps } from 'react';
 
-import { colors } from '@/theme';
-
 type AndroidName = Extract<ComponentProps<typeof SymbolView>['name'], { android?: unknown }>['android'];
 type IosName = Extract<ComponentProps<typeof SymbolView>['name'], { ios?: unknown }>['ios'];
 
-// Jedno miejsce mapujące ikony: Material Symbols na Androidzie, SF Symbols na iOS.
+// Standardowe ikony sterowania (pauza, przewijanie) zostają systemowe — tak ustalono
+// w makiecie; ilustrowane ikony są w src/ui/media.ts.
 const icons = {
   play: { android: 'play_arrow', ios: 'play.fill' },
   pause: { android: 'pause', ios: 'pause.fill' },
-  back10: { android: 'replay_10', ios: 'gobackward.10' },
-  forward10: { android: 'forward_10', ios: 'goforward.10' },
-  timer: { android: 'timer', ios: 'timer' },
-  moon: { android: 'bedtime', ios: 'moon' },
-  download: { android: 'download', ios: 'arrow.down.circle' },
-  downloaded: { android: 'check_circle', ios: 'checkmark.circle.fill' },
-  delete: { android: 'delete', ios: 'trash' },
-  offline: { android: 'wifi_off', ios: 'wifi.slash' },
-  back: { android: 'arrow_back', ios: 'chevron.left' },
-  info: { android: 'info', ios: 'info.circle' },
+  replay: { android: 'replay', ios: 'gobackward' },
+  forward: { android: 'forward_media', ios: 'goforward' },
   check: { android: 'check', ios: 'checkmark' },
-  stories: { android: 'auto_stories', ios: 'book' },
+  delete: { android: 'delete', ios: 'trash' },
+  chevronRight: { android: 'chevron_right', ios: 'chevron.right' },
+  close: { android: 'arrow_back', ios: 'chevron.left' },
+  done: { android: 'check_circle', ios: 'checkmark.circle.fill' },
+  minus: { android: 'remove', ios: 'minus' },
+  plus: { android: 'add', ios: 'plus' },
 } satisfies Record<string, { android: AndroidName; ios: IosName }>;
 
 export type IconName = keyof typeof icons;
 
-export function Icon({ name, size = 24, color = colors.text }: { name: IconName; size?: number; color?: string }) {
+export function Icon({ name, size = 24, color }: { name: IconName; size?: number; color: string }) {
   return <SymbolView name={icons[name]} size={size} tintColor={color} />;
 }

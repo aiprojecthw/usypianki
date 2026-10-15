@@ -12,6 +12,8 @@
  *       "coverUrl": "https://<bucket>.r2.dev/covers/jezyk-ciemnosc.png", // opcjonalnie, kwadrat
  *       "coverColor": "#2B3A5E",             // opcjonalnie, tło gdy brak okładki
  *       "featured": true,                    // opcjonalnie: bajka „Na dziś”
+ *       "ageLabel": "3–5 lat",               // opcjonalnie
+ *       "publishAt": "2026-11-01",           // opcjonalnie: pokazuj od tego dnia
  *       "sizeBytes": 6400000                 // opcjonalnie: pokazywane przy pobieraniu
  *     }
  *   ]
@@ -26,6 +28,9 @@ export type Story = {
   coverColor?: string;
   featured?: boolean;
   sizeBytes?: number;
+  ageLabel?: string;
+  /** Data (RRRR-MM-DD), od której bajka jest widoczna. Brak = od razu. */
+  publishAt?: string;
 };
 
 export type Catalog = {
@@ -33,8 +38,15 @@ export type Catalog = {
   stories: Story[];
 };
 
-/** Wartość audioUrl wskazująca na plik dołączony do aplikacji (tylko dane testowe). */
-export const BUNDLED_TEST_AUDIO = 'bundled:test';
+/**
+ * Prefiks audioUrl wskazujący na nagranie dołączone do aplikacji
+ * (tylko bajki testowe), np. "bundled:test-jezyk".
+ */
+export const BUNDLED_PREFIX = 'bundled:';
+
+export function isBundled(story: Pick<Story, 'audioUrl'>): boolean {
+  return story.audioUrl.startsWith(BUNDLED_PREFIX);
+}
 
 export function isValidStory(value: unknown): value is Story {
   if (typeof value !== 'object' || value === null) return false;
@@ -52,7 +64,15 @@ export function parseCatalog(value: unknown): Catalog | null {
   if (typeof value !== 'object' || value === null) return null;
   const c = value as Record<string, unknown>;
   if (!Array.isArray(c.stories)) return null;
-  const stories = c.stories.filter(isValidStory);
+  const stories = c.stories.filter(isValidStory).filter((s) => isPublished(s, new Date()));
   if (stories.length === 0) return null;
   return { version: typeof c.version === 'number' ? c.version : 1, stories };
+}
+
+/** Bajka z datą publikacji w przyszłości jest ukryta do tego dnia. */
+export function isPublished(story: Pick<Story, 'publishAt'>, now: Date): boolean {
+  if (!story.publishAt) return true;
+  const date = new Date(`${story.publishAt}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return true;
+  return date.getTime() <= now.getTime();
 }

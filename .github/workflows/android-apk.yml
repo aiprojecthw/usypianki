@@ -1,0 +1,64 @@
+# Testowy APK budowany na GitHubie (bez konta EAS i bez limitu darmowych buildów EAS).
+# Każdy push na main: testy → typy → build → nowe wydanie z plikiem APK.
+# Stały link do najnowszej wersji:
+#   https://github.com/aiprojecthw/usypianki/releases/latest/download/usypianki-test.apk
+name: Android – testowy APK (GitHub)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Instalacja zależności
+        run: npm ci
+
+      - name: Testy jednostkowe
+        run: npm test -- --ci
+
+      - name: Sprawdzenie typów
+        run: npx tsc --noEmit
+
+      - name: Generowanie projektu Android
+        run: npx expo prebuild --platform android --no-install --clean
+
+      - name: Budowanie APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+
+      - name: Publikacja wydania z APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk usypianki-test.apk
+          TAG="test-${{ github.run_number }}"
+          gh release create "$TAG" usypianki-test.apk \
+            --target "${{ github.sha }}" \
+            --title "Usypianki – wersja testowa #${{ github.run_number }}" \
+            --notes "Wersja testowa do instalacji na telefonie (APK). Commit: ${{ github.sha }}" \
+            --latest

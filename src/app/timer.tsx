@@ -1,30 +1,27 @@
 import { router } from 'expo-router';
-import { Pressable, Switch, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
-import { usePlayer, type SleepMode } from '@/player/player-provider';
-import { colors, spacing } from '@/theme';
+import { Txt } from '@/components/txt';
+import { PillButton } from '@/components/ui';
+import { SLEEP_OPTIONS } from '@/logic/resume';
+import { usePlayer } from '@/player/player-provider';
+import { parent } from '@/theme';
 
-const options: { mode: SleepMode; label: string }[] = [
-  { mode: 'end', label: 'Po tej bajce' },
-  { mode: 10, label: 'Za 10 minut' },
-  { mode: 20, label: 'Za 20 minut' },
-  { mode: 30, label: 'Za 30 minut' },
-];
-
+/** Wyłącznik czasowy dla bieżącej bajki. Domyślne ustawienie zmienia rodzic. */
 export default function TimerSheet() {
   const insets = useSafeAreaInsets();
-  const { sleepMode, setSleepMode, fadeOut, setFadeOut } = usePlayer();
+  const { sleepMode, setSleepMode } = usePlayer();
 
   return (
-    <View style={{ backgroundColor: colors.surface, paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: insets.bottom + spacing.lg, gap: 18 }}>
-      <Text accessibilityRole="header" style={{ color: colors.text, fontSize: 22, fontWeight: '800' }}>
+    <View style={{ backgroundColor: parent.surface, paddingHorizontal: 24, paddingTop: 24, paddingBottom: insets.bottom + 24, gap: 16 }}>
+      <Txt weight="extrabold" size={22} color={parent.text} accessibilityRole="header">
         Wyłącznik czasowy
-      </Text>
+      </Txt>
 
-      <View accessibilityRole="radiogroup" accessibilityLabel="Kiedy zatrzymać" style={{ gap: spacing.xs }}>
-        {options.map((o) => {
+      <View accessibilityRole="radiogroup" accessibilityLabel="Kiedy zatrzymać" style={{ gap: 4 }}>
+        {SLEEP_OPTIONS.map((o) => {
           const selected = sleepMode === o.mode;
           return (
             <Pressable
@@ -35,39 +32,26 @@ export default function TimerSheet() {
               style={{
                 minHeight: 52,
                 borderRadius: 14,
-                paddingHorizontal: spacing.md,
-                backgroundColor: selected ? colors.surfaceRaised : 'transparent',
+                paddingHorizontal: 16,
+                backgroundColor: selected ? parent.surfaceStrong : 'transparent',
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
               }}>
-              <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700' }}>{o.label}</Text>
-              {selected && <Icon name="check" color={colors.accent} size={22} />}
+              <Txt weight="bold" size={16} color={parent.text}>
+                {o.long}
+              </Txt>
+              {selected && <Icon name="check" color={parent.accent} size={22} />}
             </Pressable>
           );
         })}
       </View>
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, minHeight: 52 }}>
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>Ściszaj stopniowo</Text>
-          <Text style={{ color: colors.textMuted, fontSize: 13 }}>Przez ostatnią minutę, bez nagłego urwania</Text>
-        </View>
-        <Switch
-          value={fadeOut}
-          onValueChange={setFadeOut}
-          accessibilityLabel="Ściszaj stopniowo"
-          trackColor={{ true: colors.accent, false: colors.border }}
-          thumbColor={colors.text}
-        />
-      </View>
+      <Txt size={13} color={parent.textMuted}>
+        Przez ostatnią minutę dźwięk stopniowo cichnie. Potem jest cisza — kolejna bajka nie włącza się sama.
+      </Txt>
 
-      <Pressable
-        onPress={() => router.back()}
-        accessibilityRole="button"
-        style={{ height: 52, borderRadius: 26, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: colors.onAccent, fontSize: 16, fontWeight: '800' }}>Gotowe</Text>
-      </Pressable>
+      <PillButton label="Gotowe" onPress={() => router.back()} />
     </View>
   );
 }

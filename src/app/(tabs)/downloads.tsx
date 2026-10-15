@@ -1,71 +1,102 @@
 import { Image } from 'expo-image';
-import { ScrollView, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Icon } from '@/components/icon';
-import { StoryRow } from '@/components/story-row';
-import { useIsOffline, useStartStory } from '@/components/use-start-story';
+import { Cover } from '@/components/cover';
+import { Txt } from '@/components/txt';
+import { PillButton, SkyBackground, usePalette } from '@/components/ui';
+import { useStartStory } from '@/components/use-start-story';
 import { useCatalog } from '@/data/catalog-provider';
 import { useDownloads } from '@/data/downloads-provider';
-import { illustrations } from '@/data/local-covers';
-import { colors, spacing, storiesCount } from '@/theme';
+import { useSettings } from '@/data/settings-provider';
+import { formatMegabytes, formatMinutes } from '@/theme';
+import { emptyBaskets, uiIcons } from '@/ui/media';
+
+/** Pusty koszyk: przed zakupem albo gdy nic jeszcze nie pobrano. */
+function EmptyBasket({ purchased }: { purchased: boolean }) {
+  const { daypart } = useSettings();
+  const palette = usePalette();
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, paddingHorizontal: 32 }}>
+      <View style={{ width: 240, height: 240, borderRadius: 120, overflow: 'hidden' }}>
+        <Image source={emptyBaskets[daypart]} style={{ width: 240, height: 240 }} contentFit="cover" />
+      </View>
+      <Txt weight="extrabold" size={22} color={palette.text} style={{ textAlign: 'center' }}>
+        Tu nic jeszcze nie ma
+      </Txt>
+      <Txt size={16} color={palette.textMuted} style={{ textAlign: 'center' }}>
+        {purchased
+          ? 'Włącz bajkę i dotknij „Pobierz”, a zostanie na telefonie do słuchania bez internetu.'
+          : 'Pobrane bajki działają bez internetu. Pobieranie włącza rodzic w Strefie rodzica.'}
+      </Txt>
+      {!purchased && (
+        <PillButton
+          label="Dla rodzica"
+          variant="outline"
+          height={48}
+          onPress={() => router.push({ pathname: '/gate', params: { next: 'parent' } })}
+          icon={<Image source={uiIcons.lock} style={{ width: 22, height: 22 }} contentFit="contain" />}
+          colors={{ accent: palette.accent, onAccent: palette.onAccent, text: palette.text, outline: palette.outline }}
+        />
+      )}
+    </View>
+  );
+}
 
 export default function DownloadsScreen() {
   const insets = useSafeAreaInsets();
+  const palette = usePalette();
+  const { settings } = useSettings();
   const { stories } = useCatalog();
   const { downloaded } = useDownloads();
   const start = useStartStory();
-  const offline = useIsOffline();
 
-  const items = stories.filter((s) => s.id in downloaded);
-  const totalMb = Math.round(Object.values(downloaded).reduce((sum, b) => sum + b, 0) / 1_000_000);
+  const purchased = settings.offlinePurchased;
+  const items = purchased ? stories.filter((s) => s.id in downloaded) : [];
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: colors.background }}
-      contentContainerStyle={{ paddingTop: insets.top + spacing.lg, paddingHorizontal: 20, paddingBottom: spacing.xl, gap: spacing.md }}>
-      <Text accessibilityRole="header" style={{ color: colors.text, fontSize: 28, fontWeight: '800' }}>
-        Pobrane
-      </Text>
-
-      {offline && (
-        <View
-          accessibilityRole="alert"
-          style={{ backgroundColor: colors.warningSurface, borderRadius: 16, padding: 14, flexDirection: 'row', gap: 12 }}>
-          <Icon name="offline" color={colors.accent} size={22} />
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={{ color: colors.text, fontSize: 15, fontWeight: '700' }}>Brak internetu</Text>
-            <Text style={{ color: colors.warningText, fontSize: 14 }}>
-              Pobrane bajki działają bez sieci. Nowe pojawią się, gdy wróci połączenie.
-            </Text>
-          </View>
-        </View>
-      )}
+    <SkyBackground>
+      <View style={{ paddingTop: insets.top + 20, paddingHorizontal: 20, paddingBottom: 8 }}>
+        <Txt weight="extrabold" size={28} color={palette.text} accessibilityRole="header">
+          Pobrane
+        </Txt>
+      </View>
 
       {items.length === 0 ? (
-        <View style={{ alignItems: 'center', gap: spacing.sm, marginTop: spacing.xl, paddingHorizontal: spacing.md }}>
-          {illustrations.emptyDownloads ? (
-            <Image source={illustrations.emptyDownloads} style={{ width: 180, height: 180 }} contentFit="contain" />
-          ) : (
-            <Icon name="download" size={40} color={colors.textMuted} />
-          )}
-          <Text style={{ color: colors.text, fontSize: 17, fontWeight: '700' }}>Nic jeszcze nie pobrano</Text>
-          <Text style={{ color: colors.textMuted, fontSize: 14, textAlign: 'center' }}>
-            Dotknij strzałki przy bajce w zakładce „Bajki”, żeby słuchać jej bez internetu, np. w podróży albo u babci.
-          </Text>
-        </View>
+        <EmptyBasket purchased={purchased} />
       ) : (
-        <>
-          <View style={{ gap: spacing.xs }}>
-            {items.map((s) => (
-              <StoryRow key={s.id} story={s} action="delete" onPress={() => start(s)} />
-            ))}
-          </View>
-          <Text style={{ color: colors.textMuted, fontSize: 13 }}>
-            {storiesCount(items.length)} · {totalMb} MB na telefonie
-          </Text>
-        </>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 24, gap: 8 }}>
+          {/* Bez koszy: usuwanie pobranych jest tylko w Strefie rodzica. */}
+          {items.map((s) => (
+            <Pressable
+              key={s.id}
+              onPress={() => start(s)}
+              accessibilityRole="button"
+              accessibilityLabel={`Słuchaj: ${s.title}`}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 14,
+                padding: 10,
+                minHeight: 72,
+                borderRadius: 18,
+                backgroundColor: palette.card,
+                opacity: pressed ? 0.8 : 1,
+              })}>
+              <Cover story={s} width={56} height={56} radius={14} placeholderColor={palette.coverPlaceholder} />
+              <View style={{ flex: 1 }}>
+                <Txt weight="bold" size={16} color={palette.text}>
+                  {s.title}
+                </Txt>
+                <Txt size={13} color={palette.textMuted}>
+                  {formatMinutes(s.durationSec)} · {formatMegabytes(downloaded[s.id] ?? 0)}
+                </Txt>
+              </View>
+            </Pressable>
+          ))}
+        </ScrollView>
       )}
-    </ScrollView>
+    </SkyBackground>
   );
 }

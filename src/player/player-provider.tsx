@@ -10,14 +10,15 @@ import { createContext, use, useCallback, useEffect, useRef, useState, type Reac
 import { Platform } from 'react-native';
 
 import { useDownloads } from '@/data/downloads-provider';
-import { BUNDLED_TEST_AUDIO, type Story } from '@/data/types';
+import { useSettings } from '@/data/settings-provider';
+import { isBundled, type Story } from '@/data/types';
+import { resumePosition, type SleepMode } from '@/logic/resume';
+import { bundledAudio } from '@/ui/media';
 
-const testAudio = require('../../assets/audio/test.mp3');
-
-/** 'end' = zatrzymaj po bieżącej bajce; liczba = zatrzymaj po tylu minutach. */
-export type SleepMode = 'end' | 10 | 20 | 30;
+export type { SleepMode };
 
 const FADE_SECONDS = 60;
+const SAVE_EVERY_SECONDS = 5;
 
 // Zmiany na natywnym odtwarzaczu robimy przez funkcje spoza komponentu,
 // bo React Compiler nie pozwala modyfikować wartości zwróconych z hooków.
@@ -55,14 +56,15 @@ type PlayerState = {
   duration: number;
   hasError: boolean;
   sleepMode: SleepMode;
-  fadeOut: boolean;
-  /** Sekundy do zatrzymania przez wyłącznik czasowy. */
+  /** Czy wyłącznik minutowy odlicza (dla trybu „Po tej bajce” zawsze false). */
+  timerActive: boolean;
+  /** Sekundy do zatrzymania: do końca bajki albo do końca wyłącznika. */
   secondsLeft: number;
   play: (story: Story) => void;
   toggle: () => void;
+  pause: () => void;
   seekBy: (seconds: number) => void;
   setSleepMode: (mode: SleepMode) => void;
-  setFadeOut: (value: boolean) => void;
 };
 
 const PlayerContext = createContext<PlayerState | null>(null);
@@ -71,13 +73,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const player = useAudioPlayer(null, { updateInterval: 1000 });
   const status = useAudioPlayerStatus(player);
   const { localUri } = useDownloads();
+  const { settings, savePosition } = useSettings();
 
   const [story, setStory] = useState<Story>();
-  const [sleepMode, setSleepModeState] = useState<SleepMode>('end');
+  const [sleepMode, setSleepModeState] = useState<SleepMode>(settings.defaultSleep);
   const [timerEndsAt, setTimerEndsAt] = useState<number | null>(null);
-  const [fadeOut, setFadeOut] = useState(true);
   const [now, setNow] = useState(() => Date.now());
   const notificationsAsked = useRef(false);
+  const lastSaved = useRef(0);
+  /** Miejsce wznowienia ustawiane dopiero, gdy nagranie się wczyta. */
+  const pendingSeek = useRef(0);
 
   useEffect(() => {
     // Odtwarzanie w tle i przy zgaszonym ekranie. 'doNotMix' jest wymagane
@@ -92,12 +97,23 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const play = useCallback(
     (next: Story) => {
-      const source: AudioSource =
-        next.audioUrl === BUNDLED_TEST_AUDIO ? testAudio : { uri: localUri(next.id) ?? next.audioUrl };
+      const downloadedUri = localUri(next.id);
+      const source: AudioSource = downloadedUri
+        ? { uri: downloadedUri }
+        : isBundled(next)
+          ? bundledAudio[next.id]
+          : { uri: next.audioUrl };
 
+      const startAt = resumePosition(settings.positions[next.id], next.durationSec);
       startPlayback(player, source, next);
       setStory(next);
-      if (typeof sleepMode === 'number') setTimerEndsAt(Date.now() + sleepMode * 60_000);
+      lastSaved.current = startAt;
+      pendingSeek.current = startAt;
+
+      // Każda nowa bajka startuje z domyślnym wyłącznikiem ustawionym przez rodzica.
+      const mode = settings.defaultSleep;
+      setSleepModeState(mode);
+      setTimerEndsAt(typeof mode === 'number' ? Date.now() + mode * 60_000 : null);
 
       // Android 13+: bez zgody na powiadomienia nie pokaże się sterowanie w zasłonce.
       if (Platform.OS === 'android' && !notificationsAsked.current) {
@@ -105,17 +121,22 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         requestNotificationPermissionsAsync().catch(() => {});
       }
     },
-    [player, localUri, sleepMode]
+    [player, localUri, settings.positions, settings.defaultSleep]
   );
+
+  const pause = useCallback(() => {
+    player.pause();
+    if (story) savePosition(story.id, status.currentTime);
+  }, [player, story, savePosition, status.currentTime]);
 
   const toggle = useCallback(() => {
     if (!story) return;
     if (status.playing) {
-      player.pause();
+      pause();
     } else {
       resume(player, status.didJustFinish || status.currentTime >= status.duration - 0.5);
     }
-  }, [player, story, status.playing, status.didJustFinish, status.currentTime, status.duration]);
+  }, [player, story, pause, status.playing, status.didJustFinish, status.currentTime, status.duration]);
 
   const seekBy = useCallback(
     (seconds: number) => {
@@ -145,23 +166,41 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(id);
   }, [status.playing, timerEndsAt, player]);
 
-  const secondsLeft =
-    sleepMode === 'end'
-      ? Math.max(0, status.duration - status.currentTime)
-      : timerEndsAt
-        ? Math.max(0, (timerEndsAt - now) / 1000)
-        : 0;
+  useEffect(() => {
+    if (!status.isLoaded || pendingSeek.current <= 0) return;
+    const target = pendingSeek.current;
+    pendingSeek.current = 0;
+    player.seekTo(target).catch(() => {});
+  }, [player, status.isLoaded]);
+
+  // Zapamiętywanie miejsca co kilka sekund, żeby wrócić do bajki po przerwie.
+  useEffect(() => {
+    if (!story || !status.playing) return;
+    if (Math.abs(status.currentTime - lastSaved.current) >= SAVE_EVERY_SECONDS) {
+      lastSaved.current = status.currentTime;
+      savePosition(story.id, status.currentTime);
+    }
+  }, [story, status.playing, status.currentTime, savePosition]);
+
+  const timerActive = sleepMode !== 'end' && timerEndsAt !== null;
+  const storyLeft = Math.max(0, (status.duration || story?.durationSec || 0) - status.currentTime);
+  const secondsLeft = timerActive && timerEndsAt ? Math.max(0, (timerEndsAt - now) / 1000) : storyLeft;
+  // Do wyciszenia liczy się to, co nastąpi wcześniej: koniec bajki czy koniec wyłącznika.
+  const secondsToSilence = Math.min(storyLeft, secondsLeft);
 
   // Stopniowe ściszanie przez ostatnią minutę.
   useEffect(() => {
     if (!status.playing || status.duration <= 0) return;
-    setVolume(player, fadeOut && secondsLeft < FADE_SECONDS ? Math.max(0.05, secondsLeft / FADE_SECONDS) : 1);
-  }, [player, status.playing, status.duration, secondsLeft, fadeOut]);
+    const fade = settings.fadeOut && secondsToSilence < FADE_SECONDS;
+    setVolume(player, fade ? Math.max(0.05, secondsToSilence / FADE_SECONDS) : 1);
+  }, [player, status.playing, status.duration, secondsToSilence, settings.fadeOut]);
 
-  // Bez autoodtwarzania: po końcu bajki zostaje cisza.
+  // Bez autoodtwarzania: po końcu bajki zostaje cisza, a następnym razem start od początku.
   useEffect(() => {
-    if (status.didJustFinish) setVolume(player, 1);
-  }, [player, status.didJustFinish]);
+    if (!status.didJustFinish) return;
+    setVolume(player, 1);
+    if (story) savePosition(story.id, 0);
+  }, [player, status.didJustFinish, story, savePosition]);
 
   return (
     <PlayerContext
@@ -173,13 +212,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         duration: status.duration || story?.durationSec || 0,
         hasError: Boolean((status as { error?: unknown }).error),
         sleepMode,
-        fadeOut,
+        timerActive,
         secondsLeft,
         play,
         toggle,
+        pause,
         seekBy,
         setSleepMode,
-        setFadeOut,
       }}>
       {children}
     </PlayerContext>

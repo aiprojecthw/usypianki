@@ -1,7 +1,10 @@
+import { Asset } from 'expo-asset';
 import { Directory, File, Paths } from 'expo-file-system';
 import { createContext, use, useCallback, useState, type ReactNode } from 'react';
 
-import { BUNDLED_TEST_AUDIO, type Story } from './types';
+import { bundledAudio } from '@/ui/media';
+
+import { isBundled, type Story } from './types';
 
 const storiesDir = new Directory(Paths.document, 'stories');
 
@@ -9,6 +12,7 @@ function fileFor(id: string): File {
   return new File(storiesDir, `${id}.mp3`);
 }
 
+/** Folder pobranych bajek (testowe kopiujemy z aplikacji, prawdziwe ściągamy z R2). */
 function scanDownloaded(): Record<string, number> {
   const result: Record<string, number> = {};
   try {
@@ -33,9 +37,19 @@ type DownloadsState = {
   localUri: (id: string) => string | undefined;
   download: (story: Story) => Promise<void>;
   remove: (id: string) => void;
+  removeAll: () => void;
+  totalBytes: number;
 };
 
 const DownloadsContext = createContext<DownloadsState | null>(null);
+
+async function bundledUri(id: string): Promise<string | undefined> {
+  const moduleId = bundledAudio[id];
+  if (moduleId === undefined) return undefined;
+  const asset = Asset.fromModule(moduleId);
+  await asset.downloadAsync();
+  return asset.localUri ?? asset.uri;
+}
 
 export function DownloadsProvider({ children }: { children: ReactNode }) {
   const [downloaded, setDownloaded] = useState<Record<string, number>>(scanDownloaded);
@@ -43,19 +57,22 @@ export function DownloadsProvider({ children }: { children: ReactNode }) {
 
   const isDownloaded = useCallback((id: string) => id in downloaded, [downloaded]);
 
-  const localUri = useCallback(
-    (id: string) => (id in downloaded ? fileFor(id).uri : undefined),
-    [downloaded]
-  );
+  const localUri = useCallback((id: string) => (id in downloaded ? fileFor(id).uri : undefined), [downloaded]);
 
   const download = useCallback(async (story: Story) => {
-    // Plik testowy jest już w aplikacji, nie ma czego pobierać.
-    if (story.audioUrl === BUNDLED_TEST_AUDIO) return;
     setDownloading((d) => ({ ...d, [story.id]: true }));
     const target = fileFor(story.id);
     try {
       storiesDir.create({ idempotent: true, intermediates: true });
-      await File.downloadFileAsync(story.audioUrl, target, { idempotent: true });
+      if (isBundled(story)) {
+        // Bajka testowa: kopiujemy nagranie z aplikacji, żeby przetestować ekran „Pobrane”.
+        const uri = await bundledUri(story.id);
+        if (!uri) throw new Error('Brak nagrania testowego');
+        if (target.exists) target.delete();
+        new File(uri).copy(target);
+      } else {
+        await File.downloadFileAsync(story.audioUrl, target, { idempotent: true });
+      }
       setDownloaded((d) => ({ ...d, [story.id]: target.size }));
     } catch (error) {
       // Nie zostawiamy uszkodzonego, częściowo pobranego pliku.
@@ -84,8 +101,18 @@ export function DownloadsProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const removeAll = useCallback(() => {
+    try {
+      if (storiesDir.exists) storiesDir.delete();
+    } catch {}
+    setDownloaded({});
+  }, []);
+
+  const totalBytes = Object.values(downloaded).reduce((sum, b) => sum + b, 0);
+
   return (
-    <DownloadsContext value={{ downloaded, downloading, isDownloaded, localUri, download, remove }}>
+    <DownloadsContext
+      value={{ downloaded, downloading, isDownloaded, localUri, download, remove, removeAll, totalBytes }}>
       {children}
     </DownloadsContext>
   );

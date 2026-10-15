@@ -1,42 +1,56 @@
 # Usypianki: Bajki na sen
 
-Aplikacja na Androida z bajkami audio do słuchania przed snem. Expo SDK 57, Expo Router.
+Aplikacja na Androida z bajkami audio do słuchania przed snem (dzieci 3–8 lat). Expo SDK 57, Expo Router.
+Projekt graficzny: makieta „Usypianki – makieta MVP” (Claude Design). Decyzje produktowe: dokument
+„Decyzje aplikacji – Usypianki” w projekcie Claude.
 
-## Co jest w MVP
+## Co jest w wersji testowej
 
-- **Bajki**: lista z katalogu, bajka „Na dziś”, pobieranie na telefon.
-- **Odtwarzacz**: odtwarzanie w tle i przy zgaszonym ekranie, sterowanie z ekranu blokady, ±10 s.
-- **Wyłącznik czasowy**: po tej bajce / 10 / 20 / 30 min, stopniowe ściszanie przez ostatnią minutę.
-- **Tryb nocny**: prawie czarny ekran z jednym przyciskiem.
-- **Pobrane**: bajki offline, usuwanie, komunikat o braku internetu.
-- **Bez autoodtwarzania** kolejnych bajek, bez reklam, bez kont, bez analityki.
+- **Trzy pory dnia** (dzień od 06:00, wieczór od 17:00, noc od 19:00 — zmienia rodzic): tapeta, niebo, kolory, przycisk słońce/księżyc.
+- **Powitanie**: jednorazowa, bezgłośna animacja jeżyka na tapecie przy uruchomieniu; bajki klikalne od razu.
+- **Odtwarzacz**: tło nieba, drewniana strzałka „Wróć”, ±15 s, odtwarzanie w tle i z ekranu blokady, wznawianie od miejsca przerwania.
+- **Wyłącznik czasowy**: Po tej bajce / 15 / 30 / 45 min (domyślny wybiera rodzic), ściszanie przez ostatnią minutę, bez autoodtwarzania.
+- **Tryb nocny**: płynne przyciemnienie okna aplikacji do ~10%, dotyk rozjaśnia na 10 s ze sterowaniem; po wyjściu jasność wraca.
+- **Bramka rodzica**: mnożenie 2–9, nowe przy każdym otwarciu.
+- **Strefa rodzica**: pory dnia, domyślny wyłącznik, przypomnienie (przełącznik), funkcja offline, zarządzanie pobranymi.
+- **Pobieranie offline** (9,99 zł w wydaniu sklepowym): w wersji testowej odblokowanie bez płatności; „Pobierz” w odtwarzaczu, lista w „Pobrane” bez koszy, usuwanie tylko w Strefie rodzica.
+- **4 bajki testowe** czytane syntezatorem mowy (espeak-ng), dołączone do aplikacji.
+
+## Struktura
+
+```
+src/app/            ekrany (Expo Router): (tabs)/index, (tabs)/downloads, player, timer, night,
+                    gate, parent, purchase, manage-downloads, about
+src/components/     wspólne elementy UI (Txt, przyciski, okładka, animacja jeżyka)
+src/data/           katalog bajek, ustawienia (plik JSON w telefonie), pobrane pliki
+src/logic/          czysta logika z testami: pory dnia, bramka, wznawianie, wyłącznik
+src/player/         odtwarzacz (expo-audio)
+src/ui/media.ts     wszystkie grafiki, animacje i nagrania testowe
+assets/ui, assets/video, assets/stories, assets/covers
+```
 
 ## Katalog bajek (Cloudflare R2)
 
-Aplikacja pobiera listę bajek z pliku JSON, którego adres ustawia się w `app.json`:
+Adres katalogu ustawia się w `app.json`: `"extra": { "catalogUrl": "https://<bucket>.r2.dev/catalog.json" }`.
+Format opisuje `src/data/types.ts` (tytuł, czas, adres MP3, okładka, wiek, `publishAt` do planowania premier).
+Nowa bajka = MP3 w buckecie + wpis w `catalog.json`; aktualizacja aplikacji nie jest potrzebna.
+Dopóki `catalogUrl` jest puste, aplikacja pokazuje bajki testowe.
 
-```json
-"extra": { "catalogUrl": "https://<twoj-bucket>.r2.dev/catalog.json" }
-```
+## Budowanie testowego APK
 
-Format pliku opisuje `src/data/types.ts`. Każda bajka to plik MP3 o nazwie `<id>.mp3`.
-Nowa bajka = nowy MP3 w buckecie + nowa pozycja w `catalog.json`. Aktualizacja aplikacji nie jest potrzebna.
+Każdy push na `main` uruchamia `.github/workflows/android-apk.yml`: testy, sprawdzenie typów, build APK
+i nowe wydanie na GitHubie. Najnowszy plik:
+https://github.com/aiprojecthw/usypianki/releases/latest/download/usypianki-test.apk
 
-Dopóki `catalogUrl` jest puste, aplikacja pokazuje 4 bajki testowe odtwarzające dołączony dźwięk próbny (`assets/audio/test.mp3`).
-
-## Budowanie APK
-
-1. Konto na expo.dev, projekt połączony z tym repo (`extra.eas.projectId` w `app.json`).
-2. Workflow `.eas/workflows/android-preview.yml`: uruchom ręcznie na expo.dev albo zrób push na gałąź `release`.
-3. Gotowy APK pobierasz z expo.dev i instalujesz na telefonie.
-
-Odtwarzanie w tle wymaga zbudowanej aplikacji (APK). W Expo Go nie zadziała w pełni.
+APK testowy jest podpisany kluczem deweloperskim — nadaje się do instalacji na własnym telefonie,
+nie do Google Play (wydanie sklepowe: profil `production` w EAS).
 
 ## Praca lokalna
 
 ```bash
 npm install
-npx expo start      # podgląd
+npm test            # testy jednostkowe (jest-expo)
 npx tsc --noEmit    # typy
 npx expo lint       # lint
+npx expo start      # podgląd (animacja i odtwarzanie w tle wymagają zbudowanej aplikacji)
 ```

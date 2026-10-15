@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { Alert } from 'react-native';
 
 import { useDownloads } from '@/data/downloads-provider';
-import { BUNDLED_TEST_AUDIO, type Story } from '@/data/types';
+import { isBundled, type Story } from '@/data/types';
 import { usePlayer } from '@/player/player-provider';
 
 /** Uruchamia bajkę i otwiera odtwarzacz; offline pozwala tylko na pobrane. */
@@ -14,7 +14,7 @@ export function useStartStory() {
 
   return (story: Story) => {
     const offline = network.isInternetReachable === false || network.isConnected === false;
-    const playable = story.audioUrl === BUNDLED_TEST_AUDIO || isDownloaded(story.id) || !offline;
+    const playable = isBundled(story) || isDownloaded(story.id) || !offline;
     if (!playable) {
       Alert.alert(
         'Brak internetu',
