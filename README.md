@@ -9,10 +9,11 @@ Projekt graficzny: makieta „Usypianki – makieta MVP” (Claude Design). Decy
 - **Trzy pory dnia** (dzień od 06:00, wieczór od 17:00, noc od 19:00 — zmienia rodzic): tapeta, niebo, kolory, przycisk słońce/księżyc.
 - **Powitanie**: jednorazowa, bezgłośna animacja jeżyka na tapecie przy uruchomieniu; bajki klikalne od razu.
 - **Odtwarzacz**: tło nieba, drewniana strzałka „Wróć”, ±15 s, odtwarzanie w tle i z ekranu blokady, wznawianie od miejsca przerwania.
-- **Wyłącznik czasowy**: Po tej bajce / 15 / 30 / 45 min (domyślny wybiera rodzic), ściszanie przez ostatnią minutę, bez autoodtwarzania.
+- **Po bajce** (przycisk z klepsydrą): Cisza albo Spokojna melodia 10 min (plik z wbudowanym wyciszeniem); wybór zapamiętany. Bajka nigdy nie jest ściszana, kolejna nie włącza się sama.
 - **Tryb nocny**: płynne przyciemnienie okna aplikacji do ~10%, dotyk rozjaśnia na 10 s ze sterowaniem; po wyjściu jasność wraca.
-- **Bramka rodzica**: mnożenie 2–9, nowe przy każdym otwarciu.
-- **Strefa rodzica**: pory dnia, domyślny wyłącznik, przypomnienie (przełącznik), funkcja offline, zarządzanie pobranymi.
+- **Bramka rodzica**: mnożenie przez 3 (druga liczba 1–9, losowa kolejność), nowe przy każdym otwarciu.
+- **Strefa rodzica**: słuchanie bez internetu (na górze), pory dnia, przypomnienie (przełącznik), zarządzanie pobranymi.
+- **Wszystkie bajki**: karuzela do 10 bajek z kafelkiem „Wszystkie bajki →” i ekran z pełną siatką.
 - **Pobieranie offline** (9,99 zł w wydaniu sklepowym): w wersji testowej odblokowanie bez płatności; „Pobierz” w odtwarzaczu, lista w „Pobrane” bez koszy, usuwanie tylko w Strefie rodzica.
 - **4 bajki testowe** czytane syntezatorem mowy (espeak-ng), dołączone do aplikacji.
 

@@ -13,23 +13,27 @@ export function resumePosition(saved: number | undefined, durationSec: number): 
   return Math.floor(saved);
 }
 
-/** Opcje wyłącznika czasowego: po bieżącej bajce albo po N minutach. */
-export type SleepMode = 'end' | 15 | 30 | 45;
+/**
+ * Co dzieje się po zakończeniu bajki. Bajka zawsze kończy się w pełnej
+ * głośności (zakończenie „Dobranoc” musi być słyszalne); dopiero potem
+ * może zagrać spokojna melodia, która sama płynnie cichnie.
+ */
+export type AfterStory = 'silence' | 'melody';
 
-export const SLEEP_OPTIONS: { mode: SleepMode; short: string; long: string }[] = [
-  { mode: 'end', short: 'Po tej bajce', long: 'Po tej bajce' },
-  { mode: 15, short: '15 min', long: 'Za 15 minut' },
-  { mode: 30, short: '30 min', long: 'Za 30 minut' },
-  { mode: 45, short: '45 min', long: 'Za 45 minut' },
+export const AFTER_STORY_OPTIONS: { mode: AfterStory; label: string; short: string; hint: string }[] = [
+  { mode: 'silence', label: 'Cisza', short: 'Cisza po bajce', hint: 'Bajka kończy się i zapada cisza.' },
+  {
+    mode: 'melody',
+    label: 'Spokojna melodia, 10 min',
+    short: 'Melodia 10 min',
+    hint: 'Po bajce gra cicha melodia, która na końcu płynnie wycisza się.',
+  },
 ];
 
-export function isSleepMode(value: unknown): value is SleepMode {
-  return value === 'end' || value === 15 || value === 30 || value === 45;
+export function isAfterStory(value: unknown): value is AfterStory {
+  return value === 'silence' || value === 'melody';
 }
 
-/** Etykieta na przycisku w odtwarzaczu. */
-export function sleepLabel(mode: SleepMode, secondsLeft: number, active: boolean): string {
-  if (mode === 'end') return 'Po tej bajce';
-  if (!active) return `${mode} min`;
-  return `Za ${Math.max(1, Math.ceil(secondsLeft / 60))} min`;
+export function afterStoryLabel(mode: AfterStory): string {
+  return AFTER_STORY_OPTIONS.find((o) => o.mode === mode)?.short ?? 'Cisza po bajce';
 }

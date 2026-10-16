@@ -6,11 +6,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
 import { Txt } from '@/components/txt';
-import { ParentHeader, PillButton } from '@/components/ui';
+import { ParentHeader, PillButton, useNavBarStyle } from '@/components/ui';
 import { useDownloads } from '@/data/downloads-provider';
 import { useSettings } from '@/data/settings-provider';
 import { formatClock, shiftBound, type DaypartBounds } from '@/logic/daypart';
-import { SLEEP_OPTIONS } from '@/logic/resume';
 import { formatMegabytes, parent, storiesCount } from '@/theme';
 import { uiIcons } from '@/ui/media';
 
@@ -53,6 +52,7 @@ function TimeStepper({ label, value, onChange }: { label: string; value: number;
 }
 
 export default function ParentZone() {
+  useNavBarStyle('light');
   const insets = useSafeAreaInsets();
   const { settings, update } = useSettings();
   const { downloaded, totalBytes } = useDownloads();
@@ -64,89 +64,9 @@ export default function ParentZone() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: parent.background }}
-      contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24, paddingHorizontal: 20, gap: 16 }}>
+      style={{ flex: 1, backgroundColor: parent.background, marginTop: insets.top }}
+      contentContainerStyle={{ paddingTop: 12, paddingBottom: insets.bottom + 24, paddingHorizontal: 20, gap: 16 }}>
       <ParentHeader title="Strefa rodzica" onBack={() => router.dismissTo('/')} backLabel="Zamknij strefę rodzica" />
-
-      <Card>
-        <CardTitle>Pory dnia i tapety</CardTitle>
-        <TimeStepper label="Dzień od" value={bounds.dayStart} onChange={shift('dayStart')} />
-        <TimeStepper label="Wieczór od" value={bounds.eveningStart} onChange={shift('eveningStart')} />
-        <TimeStepper label="Noc od" value={bounds.nightStart} onChange={shift('nightStart')} />
-        <Txt size={13} color={parent.textMuted}>
-          Według zegara telefonu. Wieczorem i w nocy cała aplikacja przyciemnia się.
-        </Txt>
-      </Card>
-
-      <Card>
-        <CardTitle>Wyłącznik czasowy (domyślnie)</CardTitle>
-        <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {SLEEP_OPTIONS.map((o) => {
-            const selected = settings.defaultSleep === o.mode;
-            return (
-              <Pressable
-                key={String(o.mode)}
-                onPress={() => update({ defaultSleep: o.mode })}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: selected }}
-                style={{
-                  flexBasis: '47%',
-                  flexGrow: 1,
-                  height: 44,
-                  borderRadius: 14,
-                  borderWidth: 1,
-                  borderColor: selected ? parent.accent : parent.border,
-                  backgroundColor: selected ? parent.accent : parent.input,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                <Txt weight={selected ? 'extrabold' : 'bold'} size={15} color={selected ? parent.onAccent : parent.text}>
-                  {o.short}
-                </Txt>
-              </Pressable>
-            );
-          })}
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <View style={{ flex: 1 }}>
-            <Txt weight="bold" size={15} color={parent.text}>
-              Ściszaj stopniowo
-            </Txt>
-            <Txt size={13} color={parent.textMuted}>
-              Przez ostatnią minutę, bez nagłego urwania
-            </Txt>
-          </View>
-          <Switch
-            value={settings.fadeOut}
-            onValueChange={(v) => update({ fadeOut: v })}
-            accessibilityLabel="Ściszaj stopniowo"
-            trackColor={{ true: parent.accent, false: parent.border }}
-            thumbColor={parent.text}
-          />
-        </View>
-      </Card>
-
-      <Card>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <View style={{ flex: 1 }}>
-            <Txt weight="bold" size={16} color={parent.text}>
-              Przypomnienie o bajce
-            </Txt>
-            <Txt size={13} color={parent.textMuted}>
-              {settings.reminderEnabled
-                ? 'Włączone · wybór godziny pojawi się w kolejnej wersji'
-                : 'Wyłączone · po włączeniu wybierzesz godzinę'}
-            </Txt>
-          </View>
-          <Switch
-            value={settings.reminderEnabled}
-            onValueChange={(v) => update({ reminderEnabled: v })}
-            accessibilityLabel="Przypomnienie o bajce"
-            trackColor={{ true: parent.accent, false: parent.border }}
-            thumbColor={parent.text}
-          />
-        </View>
-      </Card>
 
       <Card strong>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -197,23 +117,56 @@ export default function ParentZone() {
             <Txt size={14} color={parent.textSoft}>
               Bajki słuchasz online za darmo. Pobieranie bajek na telefon to osobna funkcja, kupowana jednorazowo.
             </Txt>
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <PillButton label="Więcej · 9,99 zł" onPress={() => router.push('/purchase')} height={48} style={{ flex: 1 }} />
-              <PillButton
-                label="Przywróć zakup"
-                variant="outline"
-                height={48}
-                onPress={() =>
-                  Alert.alert(
-                    'Przywracanie zakupu',
-                    'W wydaniu w Google Play zakup przywróci się z Twojego konta Google. W wersji testowej nie ma czego przywracać.'
-                  )
-                }
-              />
-            </View>
+            <PillButton label="Więcej · 9,99 zł" onPress={() => router.push('/purchase')} height={52} />
+            <Pressable
+              onPress={() =>
+                Alert.alert(
+                  'Przywracanie zakupu',
+                  'W wydaniu w Google Play zakup przywróci się z Twojego konta Google. W wersji testowej nie ma czego przywracać.'
+                )
+              }
+              accessibilityRole="button"
+              style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
+              <Txt weight="bold" size={14} color={parent.textSoft} style={{ textDecorationLine: 'underline' }}>
+                Przywróć zakup
+              </Txt>
+            </Pressable>
           </>
         )}
       </Card>
+
+      <Card>
+        <CardTitle>Pory dnia i tapety</CardTitle>
+        <TimeStepper label="Dzień od" value={bounds.dayStart} onChange={shift('dayStart')} />
+        <TimeStepper label="Wieczór od" value={bounds.eveningStart} onChange={shift('eveningStart')} />
+        <TimeStepper label="Noc od" value={bounds.nightStart} onChange={shift('nightStart')} />
+        <Txt size={13} color={parent.textMuted}>
+          Według zegara telefonu. Wieczorem i w nocy cała aplikacja przyciemnia się.
+        </Txt>
+      </Card>
+
+      <Card>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <Txt weight="bold" size={16} color={parent.text}>
+              Przypomnienie o bajce
+            </Txt>
+            <Txt size={13} color={parent.textMuted}>
+              {settings.reminderEnabled
+                ? 'Włączone · wybór godziny pojawi się w kolejnej wersji'
+                : 'Wyłączone · po włączeniu wybierzesz godzinę'}
+            </Txt>
+          </View>
+          <Switch
+            value={settings.reminderEnabled}
+            onValueChange={(v) => update({ reminderEnabled: v })}
+            accessibilityLabel="Przypomnienie o bajce"
+            trackColor={{ true: parent.accent, false: parent.border }}
+            thumbColor={parent.text}
+          />
+        </View>
+      </Card>
+
 
       <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 24 }}>
         <Pressable onPress={() => router.push('/about')} accessibilityRole="link" style={{ minHeight: 44, justifyContent: 'center' }}>

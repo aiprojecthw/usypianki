@@ -21,6 +21,8 @@ export type Palette = {
   navActive: string;
   progressTrack: string;
   coverPlaceholder: string;
+  /** Cień pod tekstem nagłówka na tapecie (czytelność na księżycu/chmurach). */
+  textShadow: string;
 };
 
 export const palettes: Record<Daypart, Palette> = {
@@ -37,6 +39,7 @@ export const palettes: Record<Daypart, Palette> = {
     navActive: '#DCEBF7',
     progressTrack: '#9EC3E2',
     coverPlaceholder: '#BFD8EC',
+    textShadow: 'rgba(255,255,255,0.85)',
   },
   evening: {
     background: '#4A3255',
@@ -51,6 +54,7 @@ export const palettes: Record<Daypart, Palette> = {
     navActive: '#4A3358',
     progressTrack: '#3A2546',
     coverPlaceholder: '#5B4570',
+    textShadow: 'rgba(20,10,30,0.85)',
   },
   night: {
     background: '#080E23',
@@ -65,6 +69,7 @@ export const palettes: Record<Daypart, Palette> = {
     navActive: '#2B3A5E',
     progressTrack: '#26304A',
     coverPlaceholder: '#3C4A6B',
+    textShadow: 'rgba(4,6,15,0.95)',
   },
 };
 

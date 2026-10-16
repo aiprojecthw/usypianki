@@ -1,11 +1,11 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, TextInput, View } from 'react-native';
+import { ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Txt } from '@/components/txt';
-import { goBack, ParentHeader, PillButton } from '@/components/ui';
+import { goBack, ParentHeader, PillButton, useNavBarStyle } from '@/components/ui';
 import { isGateAnswerCorrect, makeGateQuestion } from '@/logic/gate';
 import { fonts, parent } from '@/theme';
 import { uiIcons } from '@/ui/media';
@@ -14,6 +14,7 @@ const DESTINATIONS = { parent: '/parent', purchase: '/purchase' } as const;
 
 /** Bramka rodzica: nowe mnożenie przy każdym otwarciu ekranu. */
 export default function GateScreen() {
+  useNavBarStyle('light');
   const insets = useSafeAreaInsets();
   const { next } = useLocalSearchParams<{ next?: string }>();
   const [question, setQuestion] = useState(() => makeGateQuestion());
@@ -33,12 +34,15 @@ export default function GateScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior="padding"
-      style={{ flex: 1, backgroundColor: parent.background, paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24, paddingHorizontal: 24 }}>
+    // Bez KeyboardAvoidingView: Android sam zmniejsza okno przy klawiaturze
+    // (softwareKeyboardLayoutMode: resize), a podwójne przesuwanie chowało przycisk.
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      style={{ flex: 1, backgroundColor: parent.background, marginTop: insets.top }}
+      contentContainerStyle={{ flexGrow: 1, paddingTop: 12, paddingBottom: insets.bottom + 24, paddingHorizontal: 24 }}>
       <ParentHeader onBack={() => goBack('/')} backLabel="Wróć" />
 
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 24 }}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 24, paddingVertical: 16 }}>
         <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: parent.surface, alignItems: 'center', justifyContent: 'center' }}>
           <Image source={uiIcons.lock} style={{ width: 44, height: 44 }} contentFit="contain" />
         </View>
@@ -91,6 +95,6 @@ export default function GateScreen() {
       </View>
 
       <PillButton label="Wejdź" onPress={submit} disabled={answer.length === 0} height={56} />
-    </KeyboardAvoidingView>
+    </ScrollView>
   );
 }

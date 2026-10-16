@@ -46,13 +46,21 @@ function IllustratedTabBar({ state, navigation }: TabBarProps) {
             accessibilityState={{ selected: active }}
             accessibilityLabel={meta.label}
             style={{ minWidth: 88, minHeight: 56, alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-            <View
-              style={{
-                paddingHorizontal: 18,
-                paddingVertical: 2,
-                borderRadius: 16,
-                backgroundColor: active ? palette.navActive : 'transparent',
-              }}>
+            {/* Podświetlenie jest stałym, zawsze zaokrąglonym elementem, który tylko
+                pojawia się i znika — Android gubił zaokrąglenie przy zmianie tła. */}
+            <View style={{ paddingHorizontal: 18, paddingVertical: 2, borderRadius: 16, overflow: 'hidden' }}>
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  borderRadius: 16,
+                  backgroundColor: palette.navActive,
+                  opacity: active ? 1 : 0,
+                }}
+              />
               <Image
                 source={meta.icon}
                 style={{ width: 30, height: 30, opacity: active ? 1 : 0.55 }}

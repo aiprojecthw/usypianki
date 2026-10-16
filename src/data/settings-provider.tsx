@@ -2,7 +2,7 @@ import { File, Paths } from 'expo-file-system';
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { DEFAULT_BOUNDS, daypartAt, normalizeBounds, type Daypart, type DaypartBounds } from '@/logic/daypart';
-import { isSleepMode, type SleepMode } from '@/logic/resume';
+import { isAfterStory, type AfterStory } from '@/logic/resume';
 
 /**
  * Ustawienia trzymane w jednym pliku JSON w pamięci telefonu.
@@ -10,8 +10,8 @@ import { isSleepMode, type SleepMode } from '@/logic/resume';
  */
 export type Settings = {
   bounds: DaypartBounds;
-  defaultSleep: SleepMode;
-  fadeOut: boolean;
+  /** Co po bajce: cisza albo melodia. Zapamiętywane z wyboru w odtwarzaczu. */
+  afterStory: AfterStory;
   reminderEnabled: boolean;
   /**
    * Czy funkcja pobierania jest odblokowana. W wersji testowej przełączana
@@ -24,8 +24,7 @@ export type Settings = {
 
 export const DEFAULT_SETTINGS: Settings = {
   bounds: DEFAULT_BOUNDS,
-  defaultSleep: 'end',
-  fadeOut: true,
+  afterStory: 'silence',
   reminderEnabled: false,
   offlinePurchased: false,
   positions: {},
@@ -51,8 +50,7 @@ export function parseSettings(raw: unknown): Settings {
   }
   return {
     bounds,
-    defaultSleep: isSleepMode(r.defaultSleep) ? r.defaultSleep : DEFAULT_SETTINGS.defaultSleep,
-    fadeOut: typeof r.fadeOut === 'boolean' ? r.fadeOut : DEFAULT_SETTINGS.fadeOut,
+    afterStory: isAfterStory(r.afterStory) ? r.afterStory : DEFAULT_SETTINGS.afterStory,
     reminderEnabled: typeof r.reminderEnabled === 'boolean' ? r.reminderEnabled : false,
     offlinePurchased: typeof r.offlinePurchased === 'boolean' ? r.offlinePurchased : false,
     positions,

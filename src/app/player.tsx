@@ -7,10 +7,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Cover } from '@/components/cover';
 import { Icon } from '@/components/icon';
 import { Txt } from '@/components/txt';
-import { goBack, SkyBackground, usePalette, WoodenBackButton } from '@/components/ui';
+import { goBack, SkyBackground, usePalette, WoodenBackButton, useDaypartNavBar } from '@/components/ui';
 import { useDownloads } from '@/data/downloads-provider';
 import { useSettings } from '@/data/settings-provider';
-import { sleepLabel } from '@/logic/resume';
+import { afterStoryLabel } from '@/logic/resume';
 import { usePlayer } from '@/player/player-provider';
 import { formatDuration } from '@/theme';
 import { uiIcons } from '@/ui/media';
@@ -57,6 +57,7 @@ function DownloadButton() {
         borderRadius: 22,
         borderWidth: 1,
         borderColor: palette.outline,
+        backgroundColor: palette.card,
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
@@ -64,7 +65,7 @@ function DownloadButton() {
       {busy ? (
         <ActivityIndicator color={palette.accent} size="small" />
       ) : done ? (
-        <Icon name="done" color={palette.accent} size={22} />
+        <Image source={uiIcons.check} style={{ width: 24, height: 22 }} contentFit="contain" />
       ) : (
         <Image source={uiIcons.basket} style={{ width: 24, height: 24 }} contentFit="contain" />
       )}
@@ -95,10 +96,10 @@ function SeekButton({ seconds, onPress }: { seconds: number; onPress: () => void
 }
 
 export default function PlayerScreen() {
+  useDaypartNavBar();
   const insets = useSafeAreaInsets();
   const palette = usePalette();
-  const { story, playing, isBuffering, currentTime, duration, hasError, sleepMode, timerActive, secondsLeft, toggle, seekBy } =
-    usePlayer();
+  const { story, playing, isBuffering, currentTime, duration, hasError, afterStory, melodyPlaying, toggle, seekBy } = usePlayer();
 
   const progress = duration > 0 ? Math.min(1, currentTime / duration) : 0;
   const chip = {
@@ -184,18 +185,18 @@ export default function PlayerScreen() {
             <Pressable
               onPress={() => router.push('/timer')}
               accessibilityRole="button"
-              accessibilityLabel={`Wyłącznik czasowy: ${sleepLabel(sleepMode, secondsLeft, timerActive)}`}
-              style={[chip, { backgroundColor: palette.card }]}>
+              accessibilityLabel={`Po bajce: ${afterStoryLabel(afterStory)}`}
+              style={[chip, { backgroundColor: palette.card, borderWidth: 1, borderColor: palette.outline }]}>
               <Image source={uiIcons.hourglass} style={{ width: 16, height: 24 }} contentFit="contain" />
               <Txt weight="bold" size={14} color={palette.text}>
-                {sleepLabel(sleepMode, secondsLeft, timerActive)}
+                {melodyPlaying ? 'Gra melodia' : afterStoryLabel(afterStory)}
               </Txt>
             </Pressable>
             <Pressable
               onPress={() => router.push('/night')}
               accessibilityRole="button"
               accessibilityLabel="Wygaś ekran"
-              style={[chip, { borderWidth: 1, borderColor: palette.outline }]}>
+              style={[chip, { backgroundColor: palette.card, borderWidth: 1, borderColor: palette.outline }]}>
               <Image source={uiIcons.moon} style={{ width: 20, height: 24 }} contentFit="contain" />
               <Txt weight="bold" size={14} color={palette.text}>
                 Wygaś ekran

@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
 import { Txt } from '@/components/txt';
-import { WoodenBackButton } from '@/components/ui';
+import { WoodenBackButton, useNavBarStyle } from '@/components/ui';
 import { usePlayer } from '@/player/player-provider';
 import { formatMinutes, nightMode, palettes } from '@/theme';
 import { skies, uiIcons } from '@/ui/media';
@@ -26,8 +26,9 @@ const BRIGHT_SECONDS = 10;
  * ustawionym w systemie, a bajka gra dalej w tle.
  */
 export default function NightScreen() {
+  useNavBarStyle('light');
   const insets = useSafeAreaInsets();
-  const { story, playing, timerActive, secondsLeft, toggle, seekBy } = usePlayer();
+  const { story, playing, melodyPlaying, secondsLeft, toggle, seekBy } = usePlayer();
   const [bright, setBright] = useState(false);
   const [countdown, setCountdown] = useState(BRIGHT_SECONDS);
   const fadeTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -104,8 +105,8 @@ export default function NightScreen() {
   };
 
   const timeLine = playing
-    ? timerActive
-      ? `Wyłącznik: ${formatMinutes(secondsLeft)} · potem cisza`
+    ? melodyPlaying
+      ? `Spokojna melodia · cichnie za ${formatMinutes(secondsLeft)}`
       : `Do końca bajki: ${formatMinutes(secondsLeft)}`
     : 'Wstrzymano';
 

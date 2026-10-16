@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
 import { Txt } from '@/components/txt';
-import { goBack, ParentHeader, PillButton } from '@/components/ui';
+import { goBack, ParentHeader, PillButton, useNavBarStyle } from '@/components/ui';
 import { useSettings } from '@/data/settings-provider';
 import { parent } from '@/theme';
 
@@ -20,6 +20,7 @@ const BENEFITS = [
  * bez płatności; w wydaniu sklepowym zostanie podpięty RevenueCat + Google Play.
  */
 export default function PurchaseScreen() {
+  useNavBarStyle('light');
   const insets = useSafeAreaInsets();
   const { update } = useSettings();
 
@@ -62,9 +63,9 @@ export default function PurchaseScreen() {
             jednorazowo
           </Txt>
         </View>
-        <PillButton label="Odblokuj (wersja testowa, bez płatności)" onPress={buy} height={56} />
+        <PillButton label="Odblokuj · wersja testowa" onPress={buy} height={56} />
         <Txt size={12} color={parent.textMuted} style={{ textAlign: 'center' }}>
-          W wydaniu w Google Play płatność obsłuży Google Play. Ten ekran widzi tylko rodzic.
+          Wersja testowa: odblokowanie bez płatności. W wydaniu w Google Play płatność obsłuży Google Play. Ten ekran widzi tylko rodzic.
         </Txt>
       </View>
     </View>

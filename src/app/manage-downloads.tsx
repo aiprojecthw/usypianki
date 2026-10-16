@@ -4,13 +4,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Cover } from '@/components/cover';
 import { Icon } from '@/components/icon';
 import { Txt } from '@/components/txt';
-import { goBack, ParentHeader, PillButton } from '@/components/ui';
+import { goBack, ParentHeader, PillButton, useNavBarStyle } from '@/components/ui';
 import { useCatalog } from '@/data/catalog-provider';
 import { useDownloads } from '@/data/downloads-provider';
 import { formatMegabytes, formatMinutes, parent, storiesCount } from '@/theme';
 
 /** Usuwanie pobranych bajek — tylko tutaj, za bramką rodzica. */
 export default function ManageDownloads() {
+  useNavBarStyle('light');
   const insets = useSafeAreaInsets();
   const { stories } = useCatalog();
   const { downloaded, remove, removeAll, totalBytes } = useDownloads();

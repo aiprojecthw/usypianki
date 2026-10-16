@@ -3,7 +3,7 @@ import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Txt } from '@/components/txt';
-import { goBack, ParentHeader } from '@/components/ui';
+import { goBack, ParentHeader, useNavBarStyle } from '@/components/ui';
 import { parent } from '@/theme';
 
 function Section({ title, children }: { title: string; children: string }) {
@@ -21,11 +21,12 @@ function Section({ title, children }: { title: string; children: string }) {
 
 // Treść polityki prywatności do weryfikacji przed publikacją w Google Play.
 export default function AboutScreen() {
+  useNavBarStyle('light');
   const insets = useSafeAreaInsets();
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: parent.background }}
-      contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24, paddingHorizontal: 20, gap: 24 }}>
+      style={{ flex: 1, backgroundColor: parent.background, marginTop: insets.top }}
+      contentContainerStyle={{ paddingTop: 12, paddingBottom: insets.bottom + 24, paddingHorizontal: 20, gap: 24 }}>
       <ParentHeader title="O aplikacji" onBack={() => goBack('/parent')} backLabel="Wróć" />
       <Section title="Usypianki: Bajki na sen">
         {`Spokojne bajki do słuchania przed snem. Wersja ${Constants.expoConfig?.version ?? ''} (testowa).`}

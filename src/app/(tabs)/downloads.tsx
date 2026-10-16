@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Cover } from '@/components/cover';
 import { Txt } from '@/components/txt';
-import { PillButton, SkyBackground, usePalette } from '@/components/ui';
+import { PillButton, SkyBackground, usePalette, useDaypartNavBar } from '@/components/ui';
 import { useStartStory } from '@/components/use-start-story';
 import { useCatalog } from '@/data/catalog-provider';
 import { useDownloads } from '@/data/downloads-provider';
@@ -19,9 +19,8 @@ function EmptyBasket({ purchased }: { purchased: boolean }) {
   const palette = usePalette();
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, paddingHorizontal: 32 }}>
-      <View style={{ width: 240, height: 240, borderRadius: 120, overflow: 'hidden' }}>
-        <Image source={emptyBaskets[daypart]} style={{ width: 240, height: 240 }} contentFit="cover" />
-      </View>
+      {/* Grafika ma miękko wygaszone brzegi, więc wtapia się w niebo bez widocznego koła. */}
+      <Image source={emptyBaskets[daypart]} style={{ width: 260, height: 260, marginVertical: -20 }} contentFit="contain" />
       <Txt weight="extrabold" size={22} color={palette.text} style={{ textAlign: 'center' }}>
         Tu nic jeszcze nie ma
       </Txt>
@@ -45,6 +44,7 @@ function EmptyBasket({ purchased }: { purchased: boolean }) {
 }
 
 export default function DownloadsScreen() {
+  useDaypartNavBar();
   const insets = useSafeAreaInsets();
   const palette = usePalette();
   const { settings } = useSettings();

@@ -33,9 +33,9 @@ export const skyPosition: Record<Daypart, 'top' | 'right top'> = {
 };
 
 export const emptyBaskets: Record<Daypart, ImageSourcePropType> = {
-  day: require('../../assets/ui/koszyk_pusty_dzien.jpg'),
-  evening: require('../../assets/ui/koszyk_pusty_wieczor.jpg'),
-  night: require('../../assets/ui/koszyk_pusty_noc.jpg'),
+  day: require('../../assets/ui/koszyk_pusty_dzien.png'),
+  evening: require('../../assets/ui/koszyk_pusty_wieczor.png'),
+  night: require('../../assets/ui/koszyk_pusty_noc.png'),
 };
 
 export const playButtons: Record<Daypart, ImageSourcePropType> = {
@@ -51,7 +51,11 @@ export const uiIcons = {
   back: require('../../assets/ui/wstecz.png') as ImageSourcePropType,
   moon: require('../../assets/ui/ik_ksiezyc.png') as ImageSourcePropType,
   hourglass: require('../../assets/ui/ik_klepsydra.png') as ImageSourcePropType,
+  check: require('../../assets/ui/ptaszek.png') as ImageSourcePropType,
 };
+
+/** Melodia po bajce: 10 min, z wbudowanym wejściem (6 s) i wyciszeniem (ostatnia minuta). Wersja testowa. */
+export const afterStoryMelody: number = require('../../assets/sounds/melodia-10min.mp3');
 
 export const localCovers: Record<string, ImageSourcePropType> = {
   'test-jezyk': require('../../assets/covers/test-jezyk.jpg'),

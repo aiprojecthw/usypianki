@@ -33,6 +33,7 @@ function AppStack() {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: palette.background } }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="player" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="stories" />
         <Stack.Screen
           name="timer"
           options={{

@@ -1,7 +1,9 @@
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import type { ReactNode } from 'react';
-import { Pressable, View, type ViewStyle } from 'react-native';
+import * as NavigationBar from 'expo-navigation-bar';
+import { router, useFocusEffect } from 'expo-router';
+import { setStatusBarStyle } from 'expo-status-bar';
+import { useCallback, type ReactNode } from 'react';
+import { Platform, Pressable, View, type ViewStyle } from 'react-native';
 
 import { Icon } from '@/components/icon';
 import { Txt } from '@/components/txt';
@@ -121,9 +123,37 @@ export function PillButton({
         style,
       ]}>
       {icon}
-      <Txt weight={primary ? 'extrabold' : 'bold'} size={16} color={primary ? colors.onAccent : colors.text}>
+      <Txt
+        weight={primary ? 'extrabold' : 'bold'}
+        size={16}
+        color={primary ? colors.onAccent : colors.text}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+        style={{ flexShrink: 1 }}>
         {label}
       </Txt>
     </Pressable>
   );
+}
+
+/**
+ * Kolor przycisków systemowego paska nawigacji Androida dla bieżącego ekranu.
+ * 'light' = jasne przyciski (ciemne tło), 'dark' = ciemne przyciski (jasne tło).
+ * Ustawiany przy każdym wejściu na ekran, bo ekrany rodzica są zawsze ciemne.
+ */
+export function useNavBarStyle(style: 'light' | 'dark') {
+  useFocusEffect(
+    useCallback(() => {
+      // Ten sam kolor ikon dla górnego paska stanu i dolnego paska nawigacji.
+      setStatusBarStyle(style);
+      if (Platform.OS === 'android') NavigationBar.setStyle(style);
+    }, [style])
+  );
+}
+
+/** Pasek nawigacji dopasowany do pory dnia (jasne tło w dzień, ciemne wieczorem i w nocy). */
+export function useDaypartNavBar() {
+  const { daypart } = useSettings();
+  useNavBarStyle(daypart === 'day' ? 'dark' : 'light');
 }
