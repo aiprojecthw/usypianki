@@ -16,6 +16,10 @@ Przed wgraniem pokazuje plan i czeka na potwierdzenie „t”.
 Klucze R2: plik D:\\Audiobooki_na_dobranoc\\.r2-klucze.txt (KLUCZ=wartość w liniach):
   R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ENDPOINT, R2_BUCKET, R2_PUBLIC_URL
 
+Gdy nagrania nie ma pod ścieżką z karty, skrypt pokazuje ostatnie pliki audio z folderu
+Pobrane, pozwala wybrać numer, przenosi plik do D:\\Audiobooki_na_dobranoc\\audio\\Bxxx\\
+(Bxxx_vN_narracja.mp3) i wpisuje ścieżkę do karty.
+
 Pola karty używane przez skrypt (nagłówek YAML):
   id (B001), tytul, wiek ("5-6"), status, audio_plik (ścieżka .mp3 może być wewnątrz opisu),
   publikacje (lista), opcjonalnie: okladka (ścieżka do obrazka), aplikacja_od (RRRR-MM-DD),
@@ -45,6 +49,9 @@ from pathlib import Path
 
 DOMYSLNY_VAULT = Path(r"D:\Obsidian\Vault\03_Projects\Audiobooki_na_dobranoc")
 DOMYSLNE_KLUCZE = Path(r"D:\Audiobooki_na_dobranoc\.r2-klucze.txt")
+FOLDER_AUDIO = Path(r"D:\Audiobooki_na_dobranoc\audio")
+FOLDER_POBRANE = Path.home() / "Downloads"
+ROZSZERZENIA_AUDIO = (".mp3", ".wav", ".m4a", ".flac")
 WYMAGANE_KLUCZE = ("R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_ENDPOINT", "R2_BUCKET", "R2_PUBLIC_URL")
 KATALOG_KLUCZ = "katalog.json"
 BITRATE = "64k"
@@ -163,6 +170,50 @@ def etykieta_wieku(wiek: object) -> str | None:
 def kolor_tla(kod: str) -> str:
     return KOLORY_TLA[sum(map(ord, kod)) % len(KOLORY_TLA)]
 
+
+
+def ostatnie_pobrane(folder: Path, ile: int = 8) -> list[Path]:
+    if not folder.is_dir():
+        return []
+    pliki = [p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in ROZSZERZENIA_AUDIO]
+    return sorted(pliki, key=lambda p: p.stat().st_mtime, reverse=True)[:ile]
+
+
+def wybierz_z_pobranych(karta: "Karta", folder: Path) -> Path | None:
+    """Gdy nagrania nie ma na miejscu: pokaż ostatnie pliki audio z Pobranych i daj wybrać."""
+    pliki = ostatnie_pobrane(folder)
+    if not pliki:
+        print(f"  ! {karta.kod}: brak nagrania i brak plików audio w {folder}")
+        return None
+    print(f"  ? {karta.kod} „{karta.tytul}”: nie ma nagrania na miejscu. Ostatnie pliki audio w {folder}:")
+    for i, p in enumerate(pliki, 1):
+        kiedy = dt.datetime.fromtimestamp(p.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+        print(f"      {i}. {p.name}  ({p.stat().st_size / 1e6:.1f} MB, {kiedy})")
+    odp = input("    Numer pliku dla tej bajki (Enter = pomiń): ").strip()
+    if not odp.isdigit() or not 1 <= int(odp) <= len(pliki):
+        print(f"    Pomijam {karta.kod}.")
+        return None
+    return pliki[int(odp) - 1]
+
+
+def umiesc_nagranie(karta: "Karta", zrodlo: Path, folder_audio: Path) -> Path:
+    """Przenosi wybrany plik do D:\\Audiobooki_na_dobranoc\\audio\\Bxxx\\Bxxx_vN_narracja.ext i wpisuje ścieżkę do karty."""
+    wersja = str(karta.meta.get("wersja_zatwierdzona") or karta.meta.get("wersja_robocza") or "v1").strip() or "v1"
+    cel = folder_audio / karta.kod / f"{karta.kod}_{wersja}_narracja{zrodlo.suffix.lower()}"
+    cel.parent.mkdir(parents=True, exist_ok=True)
+    if cel.exists():
+        raise BladPublikacji(f"{cel} już istnieje — nie nadpisuję. Usuń go albo popraw pole audio_plik w karcie.")
+    shutil.move(str(zrodlo), str(cel))
+    czesci = rozdziel_naglowek(karta.tekst)
+    assert czesci is not None
+    linie = [l for l in czesci[0].splitlines() if not l.startswith("audio_plik:")]
+    # Pojedyncze cudzysłowy: w YAML-u ukośniki Windows w podwójnych byłyby sekwencjami ucieczki.
+    linie.append("audio_plik: '" + str(cel).replace("'", "''") + "'")
+    karta.tekst = "---\n" + "\n".join(linie).strip("\n") + "\n---" + czesci[1]
+    karta.meta["audio_plik"] = str(cel)
+    karta.sciezka.write_text(karta.tekst, encoding="utf-8")
+    print(f"    ✓ przeniesiono do {cel} i wpisano ścieżkę w karcie")
+    return cel
 
 # ---------------------------------------------------------------- media
 
@@ -311,6 +362,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Publikacja zatwierdzonych bajek do aplikacji Usypianki.")
     parser.add_argument("--vault", type=Path, default=DOMYSLNY_VAULT)
     parser.add_argument("--klucze", type=Path, default=DOMYSLNE_KLUCZE)
+    parser.add_argument("--pobrane", type=Path, default=FOLDER_POBRANE, help="folder z pobranymi nagraniami")
+    parser.add_argument("--folder-audio", type=Path, default=FOLDER_AUDIO, help="docelowy folder nagrań")
     parser.add_argument("--podglad", action="store_true", help="tylko pokaż plan, nic nie wysyłaj")
     parser.add_argument("--usun-testowe", action="store_true", help="usuń z katalogu bajki testowe (test-*)")
     parser.add_argument("--tak", action="store_true", help="nie pytaj o potwierdzenie")
@@ -334,8 +387,13 @@ def main() -> int:
             continue
         audio = sciezka_z_pola(k.meta.get("audio_plik"), ("mp3", "wav", "m4a", "flac"))
         if not audio or not audio.is_file():
-            print(f"  ! {k.kod}: nie znaleziono pliku audio ({k.meta.get('audio_plik')!r}) — pomijam")
-            continue
+            if args.podglad:
+                print(f"  ? {k.kod}: brak nagrania na miejscu — przy publikacji skrypt zaproponuje plik z {args.pobrane}")
+                continue
+            wybrany = wybierz_z_pobranych(k, args.pobrane)
+            if not wybrany:
+                continue
+            audio = umiesc_nagranie(k, wybrany, args.folder_audio)
         okladka = sciezka_z_pola(k.meta.get("okladka"), ("png", "jpg", "jpeg", "webp"))
         if okladka and not okladka.is_file():
             print(f"  ! {k.kod}: okładka {okladka} nie istnieje — publikuję bez okładki")
