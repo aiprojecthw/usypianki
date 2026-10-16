@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "usypianki",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#131733",
+    "backgroundColor": "#09132F",
     "ios": {
       "icon": "./assets/images/icon.png",
       "bundleIdentifier": "pl.usypianki.app"
@@ -15,7 +15,7 @@
     "android": {
       "package": "pl.usypianki.app",
       "adaptiveIcon": {
-        "backgroundColor": "#131733",
+        "backgroundColor": "#09132F",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -32,7 +32,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#131733",
+          "backgroundColor": "#09132F",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200
         }
