@@ -25,10 +25,14 @@ Pola karty używane przez skrypt (nagłówek YAML):
   publikacje (lista), opcjonalnie: okladka (ścieżka do obrazka), aplikacja_od (RRRR-MM-DD),
   aplikacja_na_dzis (true = bajka „Na dziś”).
 
+Okładka: gdy karta nie ma pola `okladka` (albo przy --odswiez), skrypt pokazuje ostatnie
+obrazki z Pobranych; wybrany zapisuje jako Bxxx_okladka.jpg/png w folderze bajki w vaultcie.
+
 Użycie (Windows, PowerShell):
   py publikuj_bajki.py                 # pokaż plan, zapytaj, opublikuj
   py publikuj_bajki.py --podglad       # tylko pokaż, co byłoby opublikowane
   py publikuj_bajki.py --usun-testowe  # przy okazji usuń z katalogu bajki testowe (test-*)
+  py publikuj_bajki.py --odswiez B001  # ponowna publikacja (np. nowa okładka) bajki już w aplikacji
 
 Wymagania: Python 3.10+, ffmpeg w PATH (winget install Gyan.FFmpeg),
            pip install boto3 pyyaml pillow
@@ -37,6 +41,7 @@ Wymagania: Python 3.10+, ffmpeg w PATH (winget install Gyan.FFmpeg),
 from __future__ import annotations
 
 import argparse
+import hashlib
 import datetime as dt
 import json
 import re
@@ -52,6 +57,7 @@ DOMYSLNE_KLUCZE = Path(r"D:\Audiobooki_na_dobranoc\.r2-klucze.txt")
 FOLDER_AUDIO = Path(r"D:\Audiobooki_na_dobranoc\audio")
 FOLDER_POBRANE = Path.home() / "Downloads"
 ROZSZERZENIA_AUDIO = (".mp3", ".wav", ".m4a", ".flac")
+ROZSZERZENIA_OBRAZU = (".png", ".jpg", ".jpeg", ".webp")
 WYMAGANE_KLUCZE = ("R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_ENDPOINT", "R2_BUCKET", "R2_PUBLIC_URL")
 KATALOG_KLUCZ = "katalog.json"
 BITRATE = "64k"
@@ -143,7 +149,9 @@ def lista_publikacji(meta: dict) -> list[str]:
     return [str(x).strip().lower() for x in wartosc]
 
 
-def do_publikacji(karta: Karta) -> bool:
+def do_publikacji(karta: Karta, odswiez: set[str] | None = None) -> bool:
+    if odswiez and karta.kod.upper() in odswiez:
+        return str(karta.meta.get("status", "")).strip().upper() == "COMPLETED"
     return str(karta.meta.get("status", "")).strip().upper() == "COMPLETED" and "aplikacja" not in lista_publikacji(karta.meta)
 
 
@@ -172,28 +180,51 @@ def kolor_tla(kod: str) -> str:
 
 
 
-def ostatnie_pobrane(folder: Path, ile: int = 8) -> list[Path]:
+def ostatnie_pobrane(folder: Path, rozszerzenia: tuple[str, ...], ile: int = 8) -> list[Path]:
     if not folder.is_dir():
         return []
-    pliki = [p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in ROZSZERZENIA_AUDIO]
+    pliki = [p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in rozszerzenia]
     return sorted(pliki, key=lambda p: p.stat().st_mtime, reverse=True)[:ile]
 
 
-def wybierz_z_pobranych(karta: "Karta", folder: Path) -> Path | None:
-    """Gdy nagrania nie ma na miejscu: pokaż ostatnie pliki audio z Pobranych i daj wybrać."""
-    pliki = ostatnie_pobrane(folder)
+def wybierz_z_pobranych(karta: "Karta", folder: Path, rodzaj: str = "nagranie",
+                        rozszerzenia: tuple[str, ...] = ROZSZERZENIA_AUDIO) -> Path | None:
+    """Pokaż ostatnie pliki danego rodzaju z Pobranych i daj wybrać numer (Enter = pomiń)."""
+    pliki = ostatnie_pobrane(folder, rozszerzenia)
     if not pliki:
-        print(f"  ! {karta.kod}: brak nagrania i brak plików audio w {folder}")
+        print(f"  ! {karta.kod}: brak pliku ({rodzaj}) w {folder}")
         return None
-    print(f"  ? {karta.kod} „{karta.tytul}”: nie ma nagrania na miejscu. Ostatnie pliki audio w {folder}:")
+    print(f"  ? {karta.kod} „{karta.tytul}” — {rodzaj}. Ostatnie pliki w {folder}:")
     for i, p in enumerate(pliki, 1):
         kiedy = dt.datetime.fromtimestamp(p.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
         print(f"      {i}. {p.name}  ({p.stat().st_size / 1e6:.1f} MB, {kiedy})")
-    odp = input("    Numer pliku dla tej bajki (Enter = pomiń): ").strip()
+    odp = input(f"    Numer pliku ({rodzaj}) dla tej bajki (Enter = pomiń): ").strip()
     if not odp.isdigit() or not 1 <= int(odp) <= len(pliki):
-        print(f"    Pomijam {karta.kod}.")
+        print(f"    Pomijam ({rodzaj}).")
         return None
     return pliki[int(odp) - 1]
+
+
+def ustaw_pole(karta: "Karta", klucz: str, wartosc: str) -> None:
+    """Zapisuje pole w nagłówku karty (pojedyncze cudzysłowy — ukośniki Windows są bezpieczne)."""
+    czesci = rozdziel_naglowek(karta.tekst)
+    assert czesci is not None
+    linie = [l for l in czesci[0].splitlines() if not l.startswith(f"{klucz}:")]
+    linie.append(f"{klucz}: '" + wartosc.replace("'", "''") + "'")
+    karta.tekst = "---\n" + "\n".join(linie).strip("\n") + "\n---" + czesci[1]
+    karta.meta[klucz] = wartosc
+    karta.sciezka.write_text(karta.tekst, encoding="utf-8")
+
+
+def umiesc_okladke(karta: "Karta", zrodlo: Path) -> Path:
+    """Przenosi okładkę do folderu bajki w vaultcie (Bxxx_okladka.ext) i wpisuje pole okladka."""
+    cel = karta.sciezka.parent / f"{karta.kod}_okladka{zrodlo.suffix.lower()}"
+    if cel.exists():
+        cel.unlink()  # nowa okładka zastępuje poprzednią tej samej bajki
+    shutil.move(str(zrodlo), str(cel))
+    ustaw_pole(karta, "okladka", str(cel))
+    print(f"    ✓ okładka zapisana jako {cel.name} w folderze bajki")
+    return cel
 
 
 def umiesc_nagranie(karta: "Karta", zrodlo: Path, folder_audio: Path) -> Path:
@@ -204,14 +235,7 @@ def umiesc_nagranie(karta: "Karta", zrodlo: Path, folder_audio: Path) -> Path:
     if cel.exists():
         raise BladPublikacji(f"{cel} już istnieje — nie nadpisuję. Usuń go albo popraw pole audio_plik w karcie.")
     shutil.move(str(zrodlo), str(cel))
-    czesci = rozdziel_naglowek(karta.tekst)
-    assert czesci is not None
-    linie = [l for l in czesci[0].splitlines() if not l.startswith("audio_plik:")]
-    # Pojedyncze cudzysłowy: w YAML-u ukośniki Windows w podwójnych byłyby sekwencjami ucieczki.
-    linie.append("audio_plik: '" + str(cel).replace("'", "''") + "'")
-    karta.tekst = "---\n" + "\n".join(linie).strip("\n") + "\n---" + czesci[1]
-    karta.meta["audio_plik"] = str(cel)
-    karta.sciezka.write_text(karta.tekst, encoding="utf-8")
+    ustaw_pole(karta, "audio_plik", str(cel))
     print(f"    ✓ przeniesiono do {cel} i wpisano ścieżkę w karcie")
     return cel
 
@@ -255,6 +279,11 @@ def przygotuj_okladke(zrodlo: Path, cel: Path) -> None:
 
 # ---------------------------------------------------------------- R2
 
+def skrot(plik: Path) -> str:
+    """8 znaków skrótu treści — nowa wersja pliku = nowy adres, więc telefon nie pokaże starej kopii."""
+    return hashlib.sha256(plik.read_bytes()).hexdigest()[:8]
+
+
 def klient_r2(klucze: dict[str, str]):
     import boto3
     from botocore.config import Config
@@ -292,17 +321,18 @@ def wyslij_katalog(s3, bucket: str, katalog: dict) -> None:
 
 # ---------------------------------------------------------------- katalog
 
-def wpis_katalogu(karta: Karta, czas: int, rozmiar: int, publiczny: str, ma_okladke: bool) -> dict:
+def wpis_katalogu(karta: Karta, czas: int, rozmiar: int, publiczny: str,
+                  klucz_audio: str, klucz_okladki: str | None) -> dict:
     wpis: dict = {
         "id": karta.id_aplikacji,
         "title": karta.tytul,
         "durationSec": czas,
-        "audioUrl": f"{publiczny}/audio/{karta.id_aplikacji}.mp3",
+        "audioUrl": f"{publiczny}/{klucz_audio}",
         "coverColor": kolor_tla(karta.kod),
         "sizeBytes": rozmiar,
     }
-    if ma_okladke:
-        wpis["coverUrl"] = f"{publiczny}/covers/{karta.id_aplikacji}.jpg"
+    if klucz_okladki:
+        wpis["coverUrl"] = f"{publiczny}/{klucz_okladki}"
     wiek = etykieta_wieku(karta.meta.get("wiek"))
     if wiek:
         wpis["ageLabel"] = wiek
@@ -364,6 +394,9 @@ def main() -> int:
     parser.add_argument("--klucze", type=Path, default=DOMYSLNE_KLUCZE)
     parser.add_argument("--pobrane", type=Path, default=FOLDER_POBRANE, help="folder z pobranymi nagraniami")
     parser.add_argument("--folder-audio", type=Path, default=FOLDER_AUDIO, help="docelowy folder nagrań")
+    parser.add_argument("--odswiez", nargs="+", default=[], metavar="BXXX",
+                        help="opublikuj ponownie bajki już obecne w aplikacji (np. nowa okładka)")
+    parser.add_argument("--bez-okladki", action="store_true", help="nie pytaj o okładkę z Pobranych")
     parser.add_argument("--podglad", action="store_true", help="tylko pokaż plan, nic nie wysyłaj")
     parser.add_argument("--usun-testowe", action="store_true", help="usuń z katalogu bajki testowe (test-*)")
     parser.add_argument("--tak", action="store_true", help="nie pytaj o potwierdzenie")
@@ -373,7 +406,8 @@ def main() -> int:
         sys.stdout.reconfigure(encoding="utf-8")
 
     karty = wczytaj_karty(args.vault)
-    gotowe = [k for k in karty if do_publikacji(k)]
+    odswiez = {k.upper() for k in args.odswiez}
+    gotowe = [k for k in karty if do_publikacji(k, odswiez)]
     print(f"Karty bajek: {len(karty)} · gotowe do publikacji (COMPLETED, jeszcze nie w aplikacji): {len(gotowe)}")
     for k in karty:
         if k not in gotowe:
@@ -396,8 +430,12 @@ def main() -> int:
             audio = umiesc_nagranie(k, wybrany, args.folder_audio)
         okladka = sciezka_z_pola(k.meta.get("okladka"), ("png", "jpg", "jpeg", "webp"))
         if okladka and not okladka.is_file():
-            print(f"  ! {k.kod}: okładka {okladka} nie istnieje — publikuję bez okładki")
+            print(f"  ! {k.kod}: okładka {okladka} nie istnieje")
             okladka = None
+        if (okladka is None or k.kod.upper() in odswiez) and not args.podglad and not args.bez_okladki:
+            wybrana = wybierz_z_pobranych(k, args.pobrane, "okładka", ROZSZERZENIA_OBRAZU)
+            if wybrana:
+                okladka = umiesc_okladke(k, wybrana)
         plan.append((k, audio, okladka))
         print(f"  + {k.kod} „{k.tytul}” · audio: {audio.name} · okładka: {okladka.name if okladka else 'brak (kolor tła)'}")
 
@@ -430,12 +468,15 @@ def main() -> int:
             kompresuj_audio(audio, mp3)
             czas = czas_trwania(mp3)
             print(f"   {czas // 60}:{czas % 60:02d} · {mp3.stat().st_size / 1e6:.1f} MB → wysyłam")
-            wyslij(s3, bucket, mp3, f"audio/{karta.id_aplikacji}.mp3", "audio/mpeg", "public, max-age=86400")
+            klucz_audio = f"audio/{karta.id_aplikacji}-{skrot(mp3)}.mp3"
+            wyslij(s3, bucket, mp3, klucz_audio, "audio/mpeg", "public, max-age=31536000, immutable")
+            klucz_okladki = None
             if okladka:
                 jpg = Path(tmp) / f"{karta.id_aplikacji}.jpg"
                 przygotuj_okladke(okladka, jpg)
-                wyslij(s3, bucket, jpg, f"covers/{karta.id_aplikacji}.jpg", "image/jpeg", "public, max-age=86400")
-            wpis = wpis_katalogu(karta, czas, mp3.stat().st_size, publiczny, okladka is not None)
+                klucz_okladki = f"covers/{karta.id_aplikacji}-{skrot(jpg)}.jpg"
+                wyslij(s3, bucket, jpg, klucz_okladki, "image/jpeg", "public, max-age=31536000, immutable")
+            wpis = wpis_katalogu(karta, czas, mp3.stat().st_size, publiczny, klucz_audio, klucz_okladki)
             nowe_wpisy.append(wpis)
             karty_do_zapisu.append((karta, wpis))
 
