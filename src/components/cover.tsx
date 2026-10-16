@@ -35,6 +35,9 @@ export function Cover({ story, width, height, radius, placeholderColor }: Props)
           contentFit="cover"
           transition={200}
           cachePolicy="disk"
+          // Bez tego Android dekodował okładkę do zbyt małej bitmapy i na ekranie głównym
+          // (64 dp) była wyraźnie rozmyta. Okładki mają 640 px, więc pamięć nie jest problemem.
+          allowDownscaling={false}
           accessibilityIgnoresInvertColors
         />
       ) : (
