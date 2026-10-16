@@ -401,8 +401,9 @@ def main() -> int:
         plan.append((k, audio, okladka))
         print(f"  + {k.kod} „{k.tytul}” · audio: {audio.name} · okładka: {okladka.name if okladka else 'brak (kolor tła)'}")
 
-    if not plan and not args.usun_testowe:
-        print("Nic do opublikowania.")
+    if not plan:
+        # Bez nowych bajek katalogu nie ruszamy (także z --usun-testowe), żeby nie zostawić aplikacji bez bajek.
+        print("Nic do opublikowania. Katalog na serwerze bez zmian.")
         return 0
     if args.podglad:
         print("Tryb podglądu: nic nie zostało wysłane.")
@@ -439,6 +440,8 @@ def main() -> int:
             karty_do_zapisu.append((karta, wpis))
 
     nowy_katalog = scal_katalog(katalog, nowe_wpisy, args.usun_testowe)
+    if not nowy_katalog["stories"]:
+        raise BladPublikacji("Nowy katalog byłby pusty — przerywam, nic nie zmieniam na serwerze.")
     wyslij_katalog(s3, bucket, nowy_katalog)
     print(f"✓ katalog.json zaktualizowany: {len(nowy_katalog['stories'])} bajek")
 
