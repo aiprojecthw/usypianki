@@ -18,6 +18,7 @@ const icons = {
   done: { android: 'check_circle', ios: 'checkmark.circle.fill' },
   minus: { android: 'remove', ios: 'minus' },
   plus: { android: 'add', ios: 'plus' },
+  backspace: { android: 'backspace', ios: 'delete.left' },
 } satisfies Record<string, { android: AndroidName; ios: IosName }>;
 
 export type IconName = keyof typeof icons;

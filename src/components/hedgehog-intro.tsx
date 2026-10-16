@@ -1,44 +1,45 @@
-import { useEventListener } from 'expo';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import type { Daypart } from '@/logic/daypart';
 import { wallpaperAnimations } from '@/ui/media';
 
 /**
- * Tempo animacji jeżyka. Klip trwa 5 s; 1 = naturalne tempo.
+ * Tempo animacji jeżyka. Klip trwa ~5,2 s; 1 = naturalne tempo.
  * Do ustalenia po testach na telefonie (np. 1.5–2 skraca do 2,5–3,5 s).
  */
 export const INTRO_PLAYBACK_RATE = 1;
 
-/** Zanikanie zaczyna się tyle sekund przed końcem klipu (czas filmu, nie zegara). */
-const FADE_BEFORE_END = 0.6;
-const FADE_MS = 450;
+/** Długość klipu w sekundach (wszystkie trzy animacje: 124 klatki przy 24 kl./s). */
+const CLIP_SECONDS = 5.17;
+/** Pauza tyle sekund przed końcem — jeżyk już się nie rusza, a odtwarzacz nie dochodzi do końca. */
+const STOP_BEFORE_END = 0.25;
 
 // Animacja leci raz na uruchomienie aplikacji, nie przy każdym powrocie na ekran.
 let playedThisLaunch = false;
 
 /**
- * Jednorazowa animacja jeżyka nałożona na tapetę. Ostatnia klatka klipu jest
- * identyczna z tapetą, więc warstwa wideo może zniknąć, zanim klip się skończy.
+ * Jednorazowa animacja jeżyka nałożona na tapetę. Ostatnie klatki klipu są
+ * identyczne z tapetą, więc warstwę można schować bez żadnego przejścia.
  *
- * Odtwarzacz Androida po ostatniej klatce czyści obraz na czarno, dlatego:
- * - warstwa pojawia się dopiero po wyrenderowaniu pierwszej klatki,
- * - zanika przed końcem klipu, a nie po nim.
+ * Bez zanikania: na Androidzie półprzezroczysta warstwa wideo odsłania czerń
+ * zamiast tapety (potwierdzone nagraniem ekranu). Dlatego:
+ * - warstwa jest widoczna dopiero po wyrenderowaniu pierwszej klatki,
+ * - zegar aplikacji (nie zdarzenia odtwarzacza) zatrzymuje klip pauzą tuż
+ *   przed końcem, na nieruchomej klatce, i od razu usuwa warstwę.
  * Bez dźwięku i bez blokowania dotyku: bajki są klikalne od pierwszej chwili.
  */
 export function HedgehogIntro({ daypart }: { daypart: Daypart }) {
   const [visible, setVisible] = useState(!playedThisLaunch);
-  const [opacity] = useState(() => new Animated.Value(0));
-  const fading = useRef(false);
+  const [started, setStarted] = useState(false);
+  const stopTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const player = useVideoPlayer(visible ? wallpaperAnimations[daypart] : null, (p) => {
     p.muted = true;
     p.loop = false;
     p.audioMixingMode = 'mixWithOthers';
     p.playbackRate = INTRO_PLAYBACK_RATE;
-    p.timeUpdateEventInterval = 0.1;
     p.play();
   });
 
@@ -46,40 +47,42 @@ export function HedgehogIntro({ daypart }: { daypart: Daypart }) {
     playedThisLaunch = true;
   }, []);
 
-  const fadeOut = () => {
-    if (fading.current) return;
-    fading.current = true;
-    Animated.timing(opacity, { toValue: 0, duration: FADE_MS, useNativeDriver: true }).start(() => setVisible(false));
-  };
+  // Start zegara liczony od pierwszej wyrenderowanej klatki.
+  useEffect(() => {
+    if (!started) return;
+    const ms = ((CLIP_SECONDS - STOP_BEFORE_END) / INTRO_PLAYBACK_RATE) * 1000;
+    stopTimer.current = setTimeout(() => {
+      try {
+        player.pause();
+      } catch {
+        // Odtwarzacz mógł już zostać zwolniony — i tak chowamy warstwę.
+      }
+      setVisible(false);
+    }, ms);
+    return () => {
+      if (stopTimer.current) clearTimeout(stopTimer.current);
+    };
+  }, [started, player]);
 
-  useEventListener(player, 'timeUpdate', ({ currentTime }) => {
-    const duration = player.duration;
-    if (duration > 0 && currentTime >= duration - FADE_BEFORE_END) fadeOut();
-  });
-
-  // Gdyby zdarzenie czasu nie dotarło, koniec klipu i tak schowa warstwę.
-  useEventListener(player, 'playToEnd', () => fadeOut());
-
-  // Zabezpieczenie: gdyby klip się nie odtworzył, warstwa i tak zniknie.
+  // Zabezpieczenie: gdyby klip się w ogóle nie odtworzył, warstwa i tak zniknie.
   useEffect(() => {
     if (!visible) return;
-    const id = setTimeout(() => setVisible(false), (5 / INTRO_PLAYBACK_RATE) * 1000 + 3000);
+    const id = setTimeout(() => setVisible(false), (CLIP_SECONDS / INTRO_PLAYBACK_RATE) * 1000 + 3000);
     return () => clearTimeout(id);
   }, [visible]);
 
   if (!visible) return null;
 
   return (
-    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity }]}>
-      <VideoView
-        player={player}
-        style={StyleSheet.absoluteFill}
-        contentFit="cover"
-        nativeControls={false}
-        surfaceType="textureView"
-        accessible={false}
-        onFirstFrameRender={() => opacity.setValue(1)}
-      />
-    </Animated.View>
+    <VideoView
+      player={player}
+      pointerEvents="none"
+      style={[StyleSheet.absoluteFill, { opacity: started ? 1 : 0 }]}
+      contentFit="cover"
+      nativeControls={false}
+      surfaceType="textureView"
+      accessible={false}
+      onFirstFrameRender={() => setStarted(true)}
+    />
   );
 }
