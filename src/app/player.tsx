@@ -51,15 +51,16 @@ function DownloadButton() {
       accessibilityRole="button"
       accessibilityLabel={done ? 'Bajka jest na telefonie' : 'Pobierz bajkę na telefon'}
       style={{
-        marginLeft: 'auto',
-        height: 44,
+        flex: 1,
+        height: 48,
         paddingHorizontal: 14,
-        borderRadius: 22,
+        borderRadius: 24,
         borderWidth: 1,
         borderColor: palette.outline,
         backgroundColor: palette.card,
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: 8,
       }}>
       {busy ? (
@@ -69,7 +70,7 @@ function DownloadButton() {
       ) : (
         <Image source={uiIcons.basket} style={{ width: 24, height: 24 }} contentFit="contain" />
       )}
-      <Txt weight="bold" size={14} color={palette.text}>
+      <Txt weight="bold" size={14} color={palette.text} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1 }}>
         {label}
       </Txt>
     </Pressable>
@@ -103,11 +104,13 @@ export default function PlayerScreen() {
 
   const progress = duration > 0 ? Math.min(1, currentTime / duration) : 0;
   const chip = {
-    height: 44,
-    paddingHorizontal: 16,
-    borderRadius: 22,
+    flex: 1,
+    height: 48,
+    paddingHorizontal: 14,
+    borderRadius: 24,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
+    justifyContent: 'center' as const,
     gap: 8,
   };
 
@@ -115,7 +118,6 @@ export default function PlayerScreen() {
     <SkyBackground style={{ paddingTop: insets.top, paddingBottom: insets.bottom + 24 }}>
       <View style={{ height: 64, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center' }}>
         <WoodenBackButton label="Wróć do biblioteki" onPress={() => goBack('/')} />
-        <DownloadButton />
       </View>
 
       {!story ? (
@@ -181,27 +183,18 @@ export default function PlayerScreen() {
             <SeekButton seconds={SEEK_SECONDS} onPress={() => seekBy(SEEK_SECONDS)} />
           </View>
 
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: 'auto' }}>
+          <View style={{ width: '100%', flexDirection: 'row', gap: 10, marginTop: 'auto' }}>
             <Pressable
               onPress={() => router.push('/timer')}
               accessibilityRole="button"
               accessibilityLabel={`Po bajce: ${afterStoryLabel(afterStory)}`}
               style={[chip, { backgroundColor: palette.card, borderWidth: 1, borderColor: palette.outline }]}>
               <Image source={uiIcons.hourglass} style={{ width: 16, height: 24 }} contentFit="contain" />
-              <Txt weight="bold" size={14} color={palette.text}>
+              <Txt weight="bold" size={14} color={palette.text} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1 }}>
                 {melodyPlaying ? 'Gra melodia' : afterStoryLabel(afterStory)}
               </Txt>
             </Pressable>
-            <Pressable
-              onPress={() => router.push('/night')}
-              accessibilityRole="button"
-              accessibilityLabel="Wygaś ekran"
-              style={[chip, { backgroundColor: palette.card, borderWidth: 1, borderColor: palette.outline }]}>
-              <Image source={uiIcons.moon} style={{ width: 20, height: 24 }} contentFit="contain" />
-              <Txt weight="bold" size={14} color={palette.text}>
-                Wygaś ekran
-              </Txt>
-            </Pressable>
+            <DownloadButton />
           </View>
         </View>
       )}

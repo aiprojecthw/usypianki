@@ -89,14 +89,6 @@ export const parent = {
   danger: '#E8A598',
 } as const;
 
-/** Ekran trybu nocnego w stanie przyciemnionym. */
-export const nightMode = {
-  background: '#04060B',
-  title: '#7A735F',
-  text: '#6E6754',
-  hint: '#3E3A2E',
-} as const;
-
 export const fonts = {
   regular: 'Baloo2_400Regular',
   medium: 'Baloo2_500Medium',

@@ -10,9 +10,9 @@ Projekt graficzny: makieta „Usypianki – makieta MVP” (Claude Design). Decy
 - **Start**: systemowy ekran startowy (księżyc + napis „Usypianki”), potem jednorazowa, bezgłośna animacja jeżyka na tapecie; kończy się pauzą na ostatniej klatce, bez przenikania; bajki klikalne od razu.
 - **Odtwarzacz**: tło nieba, drewniana strzałka „Wróć”, ±15 s, odtwarzanie w tle i z ekranu blokady, wznawianie od miejsca przerwania.
 - **Po bajce** (przycisk z klepsydrą): Cisza albo Spokojna melodia 10 min (plik z wbudowanym wyciszeniem); wybór zapamiętany. Bajka nigdy nie jest ściszana, kolejna nie włącza się sama.
-- **Tryb nocny**: płynne przyciemnienie okna aplikacji do ~10%, dotyk rozjaśnia na 10 s ze sterowaniem; po wyjściu jasność wraca.
+
 - **Bramka rodzica**: mnożenie przez 3 (druga liczba 1–9, losowa kolejność), nowe przy każdym otwarciu; własna klawiatura numeryczna (bez klawiatury systemowej).
-- **Strefa rodzica**: słuchanie bez internetu (na górze), pory dnia, przypomnienie (przełącznik), zarządzanie pobranymi.
+- **Strefa rodzica**: słuchanie bez internetu (na górze), pory dnia, zarządzanie pobranymi.
 - **Wszystkie bajki**: karuzela do 10 bajek z kafelkiem „Wszystkie bajki →” i ekran z pełną siatką.
 - **Pobieranie offline** (9,99 zł w wydaniu sklepowym): w wersji testowej odblokowanie bez płatności; „Pobierz” w odtwarzaczu, lista w „Pobrane” bez koszy, usuwanie tylko w Strefie rodzica.
 - **4 bajki testowe** czytane syntezatorem mowy (espeak-ng), dołączone do aplikacji.
@@ -20,7 +20,7 @@ Projekt graficzny: makieta „Usypianki – makieta MVP” (Claude Design). Decy
 ## Struktura
 
 ```
-src/app/            ekrany (Expo Router): (tabs)/index, (tabs)/downloads, player, timer, night,
+src/app/            ekrany (Expo Router): (tabs)/index, (tabs)/downloads, player, timer,
                     gate, parent, purchase, manage-downloads, about
 src/components/     wspólne elementy UI (Txt, przyciski, okładka, animacja jeżyka)
 src/data/           katalog bajek, ustawienia (plik JSON w telefonie), pobrane pliki

@@ -43,7 +43,6 @@ function AppStack() {
             contentStyle: { backgroundColor: parent.surface },
           }}
         />
-        <Stack.Screen name="night" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
         <Stack.Screen name="gate" options={{ contentStyle: { backgroundColor: parent.background } }} />
         <Stack.Screen name="parent" options={{ contentStyle: { backgroundColor: parent.background } }} />
         <Stack.Screen name="purchase" options={{ contentStyle: { backgroundColor: parent.background } }} />

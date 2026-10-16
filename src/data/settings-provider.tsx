@@ -12,7 +12,6 @@ export type Settings = {
   bounds: DaypartBounds;
   /** Co po bajce: cisza albo melodia. Zapamiętywane z wyboru w odtwarzaczu. */
   afterStory: AfterStory;
-  reminderEnabled: boolean;
   /**
    * Czy funkcja pobierania jest odblokowana. W wersji testowej przełączana
    * w Strefie rodzica bez płatności; w wydaniu sklepowym ustawia ją RevenueCat.
@@ -25,7 +24,6 @@ export type Settings = {
 export const DEFAULT_SETTINGS: Settings = {
   bounds: DEFAULT_BOUNDS,
   afterStory: 'silence',
-  reminderEnabled: false,
   offlinePurchased: false,
   positions: {},
 };
@@ -51,7 +49,6 @@ export function parseSettings(raw: unknown): Settings {
   return {
     bounds,
     afterStory: isAfterStory(r.afterStory) ? r.afterStory : DEFAULT_SETTINGS.afterStory,
-    reminderEnabled: typeof r.reminderEnabled === 'boolean' ? r.reminderEnabled : false,
     offlinePurchased: typeof r.offlinePurchased === 'boolean' ? r.offlinePurchased : false,
     positions,
   };

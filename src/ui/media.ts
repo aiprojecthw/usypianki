@@ -49,7 +49,7 @@ export const uiIcons = {
   basket: require('../../assets/ui/ik_koszyk.png') as ImageSourcePropType,
   lock: require('../../assets/ui/ik_klodka.png') as ImageSourcePropType,
   back: require('../../assets/ui/wstecz.png') as ImageSourcePropType,
-  moon: require('../../assets/ui/ik_ksiezyc.png') as ImageSourcePropType,
+  moon: require('../../assets/ui/ik_ksiezyc_v2.png') as ImageSourcePropType,
   hourglass: require('../../assets/ui/ik_klepsydra.png') as ImageSourcePropType,
   check: require('../../assets/ui/ptaszek.png') as ImageSourcePropType,
 };

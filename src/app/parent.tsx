@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
-import { Alert, Pressable, ScrollView, Switch, View } from 'react-native';
+import { Alert, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
@@ -145,27 +145,6 @@ export default function ParentZone() {
         </Txt>
       </Card>
 
-      <Card>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <View style={{ flex: 1 }}>
-            <Txt weight="bold" size={16} color={parent.text}>
-              Przypomnienie o bajce
-            </Txt>
-            <Txt size={13} color={parent.textMuted}>
-              {settings.reminderEnabled
-                ? 'Włączone · wybór godziny pojawi się w kolejnej wersji'
-                : 'Wyłączone · po włączeniu wybierzesz godzinę'}
-            </Txt>
-          </View>
-          <Switch
-            value={settings.reminderEnabled}
-            onValueChange={(v) => update({ reminderEnabled: v })}
-            accessibilityLabel="Przypomnienie o bajce"
-            trackColor={{ true: parent.accent, false: parent.border }}
-            thumbColor={parent.text}
-          />
-        </View>
-      </Card>
 
 
       <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 24 }}>
