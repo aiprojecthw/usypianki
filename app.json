@@ -57,7 +57,7 @@
       "reactCompiler": true
     },
     "extra": {
-      "catalogUrl": "",
+      "catalogUrl": "https://pub-3976f58b2efb4a31b41aefbfa650998c.r2.dev/katalog.json",
       "eas": {
         "projectId": "8d73090e-7faa-45aa-8344-c1d892f9f49c"
       }

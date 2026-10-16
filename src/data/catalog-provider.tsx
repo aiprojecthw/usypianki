@@ -49,7 +49,9 @@ type CatalogState = {
 const CatalogContext = createContext<CatalogState | null>(null);
 
 export function CatalogProvider({ children }: { children: ReactNode }) {
-  const [catalog, setCatalog] = useState<Catalog>(catalogUrl ? { version: 1, stories: [] } : fallbackCatalog);
+  // Na start bajki testowe z aplikacji; zastępuje je katalog z telefonu albo z serwera.
+  // Dzięki temu pierwsze uruchomienie bez internetu nie pokazuje pustej listy.
+  const [catalog, setCatalog] = useState<Catalog>(fallbackCatalog);
   const [loading, setLoading] = useState(Boolean(catalogUrl));
 
   const refresh = useCallback(async () => {
