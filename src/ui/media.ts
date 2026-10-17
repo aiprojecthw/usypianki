@@ -55,7 +55,7 @@ export const uiIcons = {
 };
 
 /** Melodia po bajce: 10 min, z wbudowanym wejściem (6 s) i wyciszeniem (ostatnia minuta). Wersja testowa. */
-export const afterStoryMelody: number = require('../../assets/sounds/melodia-10min.mp3');
+export const afterStoryMelody: number = require('../../assets/sounds/melodia-po-bajce-v2.mp3');
 
 export const localCovers: Record<string, ImageSourcePropType> = {
   'test-jezyk': require('../../assets/covers/test-jezyk.jpg'),

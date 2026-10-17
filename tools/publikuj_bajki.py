@@ -6,7 +6,8 @@ Publikuje WYŁĄCZNIE bajki, których karta ma status COMPLETED (audio zatwierdz
 przez Norberta na bramce 2) i które nie mają jeszcze „aplikacja” w polu `publikacje`.
 
 Dla każdej bajki:
-  1. kompresuje nagranie do MP3 64 kb/s mono (ffmpeg) i mierzy czas (ffprobe),
+  1. wyrównuje głośność do -22 LUFS (jak bajki testowe; melodia „Po bajce” jest ciszej),
+     kompresuje nagranie do MP3 64 kb/s mono (ffmpeg) i mierzy czas (ffprobe),
   2. przygotowuje okładkę 640×640 JPG (jeśli w karcie jest pole `okladka`),
   3. wgrywa pliki do R2: audio/<id>.mp3, covers/<id>.jpg,
   4. dopisuje / aktualizuje wpis w katalog.json na R2,
@@ -61,6 +62,9 @@ ROZSZERZENIA_OBRAZU = (".png", ".jpg", ".jpeg", ".webp")
 WYMAGANE_KLUCZE = ("R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_ENDPOINT", "R2_BUCKET", "R2_PUBLIC_URL")
 KATALOG_KLUCZ = "katalog.json"
 BITRATE = "64k"
+# Docelowa głośność narracji. Melodia „Po bajce” ma ok. -25 LUFS, więc nigdy nie zagra głośniej niż bajka.
+GLOSNOSC_LUFS = -22
+SZCZYT_DBTP = -2
 OKLADKA_PX = 640
 KOLORY_TLA = ["#2B3A5E", "#3C4A6B", "#4A3E5C", "#2F4A4E", "#3A3358", "#2E3F55"]
 
@@ -246,15 +250,38 @@ def wymagaj_programu(nazwa: str) -> None:
         raise BladPublikacji(f"Nie znaleziono programu „{nazwa}”. Zainstaluj ffmpeg: winget install Gyan.FFmpeg")
 
 
+def zmierz_glosnosc(zrodlo: Path) -> dict:
+    """Pierwszy przebieg loudnorm: pomiar głośności nagrania (bez zmian w pliku)."""
+    wynik = subprocess.run(
+        ["ffmpeg", "-hide_banner", "-nostats", "-i", str(zrodlo), "-vn", "-ac", "1",
+         "-af", f"loudnorm=I={GLOSNOSC_LUFS}:TP={SZCZYT_DBTP}:LRA=11:print_format=json",
+         "-f", "null", "-"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+    )
+    blok = re.search(r"\{[^{}]*\"input_i\"[^{}]*\}", wynik.stderr)
+    if wynik.returncode != 0 or not blok:
+        raise BladPublikacji(f"ffmpeg nie zmierzył głośności {zrodlo.name}: {wynik.stderr.strip()[-400:]}")
+    return json.loads(blok.group(0))
+
+
 def kompresuj_audio(zrodlo: Path, cel: Path) -> None:
     wymagaj_programu("ffmpeg")
+    m = zmierz_glosnosc(zrodlo)
+    # Drugi przebieg z linear=true: jedno stałe wzmocnienie, bez „pompowania” głosu lektora.
+    filtr = (
+        f"loudnorm=I={GLOSNOSC_LUFS}:TP={SZCZYT_DBTP}:LRA=11:linear=true"
+        f":measured_I={m['input_i']}:measured_TP={m['input_tp']}"
+        f":measured_LRA={m['input_lra']}:measured_thresh={m['input_thresh']}"
+        f":offset={m['target_offset']}"
+    )
     wynik = subprocess.run(
-        ["ffmpeg", "-y", "-v", "error", "-i", str(zrodlo), "-vn", "-ac", "1", "-ar", "44100",
-         "-codec:a", "libmp3lame", "-b:a", BITRATE, "-map_metadata", "-1", str(cel)],
+        ["ffmpeg", "-y", "-v", "error", "-i", str(zrodlo), "-vn", "-ac", "1", "-af", filtr,
+         "-ar", "44100", "-codec:a", "libmp3lame", "-b:a", BITRATE, "-map_metadata", "-1", str(cel)],
         capture_output=True, text=True,
     )
     if wynik.returncode != 0:
         raise BladPublikacji(f"ffmpeg nie przekonwertował {zrodlo.name}: {wynik.stderr.strip()}")
+    print(f"    głośność: {float(m['input_i']):.1f} → {GLOSNOSC_LUFS} LUFS")
 
 
 def czas_trwania(plik: Path) -> int:
