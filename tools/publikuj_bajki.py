@@ -6,7 +6,7 @@ Publikuje WYŁĄCZNIE bajki, których karta ma status COMPLETED (audio zatwierdz
 przez Norberta na bramce 2) i które nie mają jeszcze „aplikacja” w polu `publikacje`.
 
 Dla każdej bajki:
-  1. wyrównuje głośność do -22 LUFS (jak bajki testowe; melodia „Po bajce” jest ciszej),
+  1. usuwa dudnienie i szum tła, wyrównuje głośność do -22 LUFS (jak bajki testowe; melodia „Po bajce” jest ciszej),
      kompresuje nagranie do MP3 64 kb/s mono (ffmpeg) i mierzy czas (ffprobe),
   2. przygotowuje okładkę 640×640 JPG (jeśli w karcie jest pole `okladka`),
   3. wgrywa pliki do R2: audio/<id>.mp3, covers/<id>.jpg,
@@ -250,29 +250,35 @@ def wymagaj_programu(nazwa: str) -> None:
         raise BladPublikacji(f"Nie znaleziono programu „{nazwa}”. Zainstaluj ffmpeg: winget install Gyan.FFmpeg")
 
 
-def zmierz_glosnosc(zrodlo: Path) -> dict:
-    """Pierwszy przebieg loudnorm: pomiar głośności nagrania (bez zmian w pliku)."""
+# Obróbka przed wzmocnieniem: dudnienie < 70 Hz (zabiera zapas głośności, telefon i tak go nie gra)
+# i łagodne odszumianie stałego tła z ElevenLabs. Po nim jedno stałe wzmocnienie i limiter,
+# który przycina tylko pojedyncze trzaski. Bez automatycznej regulacji, więc pauzy zostają ciche.
+FILTR_CZYSZCZENIA = "highpass=f=70,afftdn=nr=12:nf=-55:tn=1"
+# Limiter przycina szczyty o kilka dziesiątych dB; kompensujemy, żeby trafić w cel.
+KOMPENSACJA_LIMITERA_DB = 0.5
+
+
+def zmierz_glosnosc(zrodlo: Path, filtr: str) -> float:
+    """Zintegrowana głośność (LUFS) nagrania po podanym filtrze."""
     wynik = subprocess.run(
         ["ffmpeg", "-hide_banner", "-nostats", "-i", str(zrodlo), "-vn", "-ac", "1",
-         "-af", f"loudnorm=I={GLOSNOSC_LUFS}:TP={SZCZYT_DBTP}:LRA=11:print_format=json",
-         "-f", "null", "-"],
+         "-af", f"{filtr},ebur128=framelog=quiet", "-f", "null", "-"],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
-    blok = re.search(r"\{[^{}]*\"input_i\"[^{}]*\}", wynik.stderr)
-    if wynik.returncode != 0 or not blok:
+    trafienia = re.findall(r"^\s*I:\s*(-?[\d.]+) LUFS", wynik.stderr, re.MULTILINE)
+    if wynik.returncode != 0 or not trafienia:
         raise BladPublikacji(f"ffmpeg nie zmierzył głośności {zrodlo.name}: {wynik.stderr.strip()[-400:]}")
-    return json.loads(blok.group(0))
+    return float(trafienia[-1])
 
 
 def kompresuj_audio(zrodlo: Path, cel: Path) -> None:
     wymagaj_programu("ffmpeg")
-    m = zmierz_glosnosc(zrodlo)
-    # Drugi przebieg z linear=true: jedno stałe wzmocnienie, bez „pompowania” głosu lektora.
+    glosnosc = zmierz_glosnosc(zrodlo, FILTR_CZYSZCZENIA)
+    wzmocnienie = GLOSNOSC_LUFS - glosnosc + KOMPENSACJA_LIMITERA_DB
+    limit = 10 ** (SZCZYT_DBTP / 20)
     filtr = (
-        f"loudnorm=I={GLOSNOSC_LUFS}:TP={SZCZYT_DBTP}:LRA=11:linear=true"
-        f":measured_I={m['input_i']}:measured_TP={m['input_tp']}"
-        f":measured_LRA={m['input_lra']}:measured_thresh={m['input_thresh']}"
-        f":offset={m['target_offset']}"
+        f"{FILTR_CZYSZCZENIA},volume={wzmocnienie:.2f}dB,"
+        f"alimiter=limit={limit:.3f}:attack=1:release=60:level=false"
     )
     wynik = subprocess.run(
         ["ffmpeg", "-y", "-v", "error", "-i", str(zrodlo), "-vn", "-ac", "1", "-af", filtr,
@@ -281,7 +287,7 @@ def kompresuj_audio(zrodlo: Path, cel: Path) -> None:
     )
     if wynik.returncode != 0:
         raise BladPublikacji(f"ffmpeg nie przekonwertował {zrodlo.name}: {wynik.stderr.strip()}")
-    print(f"    głośność: {float(m['input_i']):.1f} → {GLOSNOSC_LUFS} LUFS")
+    print(f"    głośność: {glosnosc:.1f} → {GLOSNOSC_LUFS} LUFS (wzmocnienie {wzmocnienie:+.1f} dB, odszumione)")
 
 
 def czas_trwania(plik: Path) -> int:
