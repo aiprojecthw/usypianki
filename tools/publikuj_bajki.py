@@ -6,7 +6,7 @@ Publikuje WYŁĄCZNIE bajki, których karta ma status COMPLETED (audio zatwierdz
 przez Norberta na bramce 2) i które nie mają jeszcze „aplikacja” w polu `publikacje`.
 
 Dla każdej bajki:
-  1. usuwa dudnienie i szum tła, wyrównuje głośność do -22 LUFS (jak bajki testowe; melodia „Po bajce” jest ciszej),
+  1. usuwa dudnienie, wycisza pauzy, wyrównuje głośność do -22 LUFS (jak bajki testowe; melodia „Po bajce” jest ciszej),
      kompresuje nagranie do MP3 64 kb/s mono (ffmpeg) i mierzy czas (ffprobe),
   2. przygotowuje okładkę 640×640 JPG (jeśli w karcie jest pole `okladka`),
   3. wgrywa pliki do R2: audio/<id>.mp3, covers/<id>.jpg,
@@ -250,10 +250,14 @@ def wymagaj_programu(nazwa: str) -> None:
         raise BladPublikacji(f"Nie znaleziono programu „{nazwa}”. Zainstaluj ffmpeg: winget install Gyan.FFmpeg")
 
 
-# Obróbka przed wzmocnieniem: dudnienie < 70 Hz (zabiera zapas głośności, telefon i tak go nie gra)
-# i łagodne odszumianie stałego tła z ElevenLabs. Po nim jedno stałe wzmocnienie i limiter,
-# który przycina tylko pojedyncze trzaski. Bez automatycznej regulacji, więc pauzy zostają ciche.
-FILTR_CZYSZCZENIA = "highpass=f=70,afftdn=nr=12:nf=-55:tn=1"
+# Obróbka przed wzmocnieniem: dudnienie < 80 Hz (zabiera zapas głośności, telefon i tak go nie gra)
+# i bramka, która w pauzach daje pełną ciszę (jak w czystych nagraniach). Głos przechodzi bez zmian.
+# Szumu POD głosem filtr nie usunie bez szkody dla lektora; od tego jest Voice Isolator w ElevenLabs
+# przed publikacją. Potem jedno stałe wzmocnienie i limiter na pojedyncze trzaski.
+FILTR_CZYSZCZENIA = (
+    "highpass=f=80,"
+    "agate=threshold=0.004:ratio=8:range=0.003:attack=5:release=250:knee=4:detection=rms"
+)
 # Limiter przycina szczyty o kilka dziesiątych dB; kompensujemy, żeby trafić w cel.
 KOMPENSACJA_LIMITERA_DB = 0.5
 
@@ -287,7 +291,7 @@ def kompresuj_audio(zrodlo: Path, cel: Path) -> None:
     )
     if wynik.returncode != 0:
         raise BladPublikacji(f"ffmpeg nie przekonwertował {zrodlo.name}: {wynik.stderr.strip()}")
-    print(f"    głośność: {glosnosc:.1f} → {GLOSNOSC_LUFS} LUFS (wzmocnienie {wzmocnienie:+.1f} dB, odszumione)")
+    print(f"    głośność: {glosnosc:.1f} → {GLOSNOSC_LUFS} LUFS (wzmocnienie {wzmocnienie:+.1f} dB, cisza w pauzach)")
 
 
 def czas_trwania(plik: Path) -> int:
