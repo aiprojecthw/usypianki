@@ -51,13 +51,18 @@ def main() -> None:
     p.add_argument("--kroki", type=int, default=64)
     p.add_argument("--ujecia", type=int, default=1,
                    help="ile nagrań tej samej bajki (każde trochę inne: model losuje szum startowy)")
+    p.add_argument("--pauza-zdania", type=float, default=PAUZA_ZDANIA_S)
+    p.add_argument("--pauza-akapit", type=float, default=PAUZA_AKAPIT_S)
+    p.add_argument("--pauza-wyciszenie", type=float, default=PAUZA_WYCISZENIE_S)
+    p.add_argument("--dopisek", default="", help="dopisek do nazwy pliku, np. _wariant2 (żeby nie nadpisać)")
     a = p.parse_args()
 
     import numpy as np
     from supertonic import TTS
 
     bid, wer, akapity = wczytaj_tekst(a.wersja)
-    print(f"{bid} {wer}: {len(akapity)} akapitów, głos {a.glos}, tempo {a.tempo}, jakość {a.kroki}, ujęć {a.ujecia}")
+    print(f"{bid} {wer}: {len(akapity)} akapitów, głos {a.glos}, tempo {a.tempo}, jakość {a.kroki}, ujęć {a.ujecia}, "
+          f"pauzy: zdania {a.pauza_zdania}s, akapity {a.pauza_akapit}s, wyciszenie {a.pauza_wyciszenie}s")
     tts = TTS(auto_download=True)
     styl = tts.get_voice_style(a.glos)
     sr = tts.sample_rate
@@ -66,7 +71,7 @@ def main() -> None:
     for ujecie in range(1, a.ujecia + 1):
         # Stałe ziarno = powtarzalne ujęcie (to samo ujęcie da się odtworzyć później).
         np.random.seed(ujecie)
-        dopisek = f"_ujecie{ujecie}" if a.ujecia > 1 else ""
+        dopisek = a.dopisek + (f"_ujecie{ujecie}" if a.ujecia > 1 else "")
         cel = FOLDER_AUDIO / bid / f"{bid}_{wer}_supertonic_{a.glos}{dopisek}.wav"
         cel.parent.mkdir(parents=True, exist_ok=True)
         print(f"\n=== Ujęcie {ujecie}/{a.ujecia} → {cel.name}")
@@ -75,10 +80,10 @@ def main() -> None:
         for i, akapit in enumerate(akapity):
             wav, _ = tts.synthesize(
                 akapit, voice_style=styl, lang="pl", speed=a.tempo,
-                total_steps=a.kroki, silence_duration=PAUZA_ZDANIA_S,
+                total_steps=a.kroki, silence_duration=a.pauza_zdania,
             )
             czesci.append(wav.reshape(-1).astype(np.float32))
-            pauza = PAUZA_WYCISZENIE_S if i >= start_wyciszenia else PAUZA_AKAPIT_S
+            pauza = a.pauza_wyciszenie if i >= start_wyciszenia else a.pauza_akapit
             if i == len(akapity) - 1:
                 pauza = CISZA_NA_KONIEC_S
             czesci.append(np.zeros(int(pauza * sr), dtype=np.float32))
