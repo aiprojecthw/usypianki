@@ -49,39 +49,45 @@ def main() -> None:
     p.add_argument("--glos", default="F5")
     p.add_argument("--tempo", type=float, default=0.88)
     p.add_argument("--kroki", type=int, default=64)
+    p.add_argument("--ujecia", type=int, default=1,
+                   help="ile nagrań tej samej bajki (każde trochę inne: model losuje szum startowy)")
     a = p.parse_args()
 
     import numpy as np
     from supertonic import TTS
 
     bid, wer, akapity = wczytaj_tekst(a.wersja)
-    cel = FOLDER_AUDIO / bid / f"{bid}_{wer}_supertonic_{a.glos}.wav"
-    cel.parent.mkdir(parents=True, exist_ok=True)
-
-    print(f"{bid} {wer}: {len(akapity)} akapitów, głos {a.glos}, tempo {a.tempo}, jakość {a.kroki}")
+    print(f"{bid} {wer}: {len(akapity)} akapitów, głos {a.glos}, tempo {a.tempo}, jakość {a.kroki}, ujęć {a.ujecia}")
     tts = TTS(auto_download=True)
     styl = tts.get_voice_style(a.glos)
     sr = tts.sample_rate
     start_wyciszenia = int(len(akapity) * 0.7)
 
-    czesci = []
-    t0 = time.time()
-    for i, akapit in enumerate(akapity):
-        wav, _ = tts.synthesize(
-            akapit, voice_style=styl, lang="pl", speed=a.tempo,
-            total_steps=a.kroki, silence_duration=PAUZA_ZDANIA_S,
-        )
-        czesci.append(wav.reshape(-1).astype(np.float32))
-        pauza = PAUZA_WYCISZENIE_S if i >= start_wyciszenia else PAUZA_AKAPIT_S
-        if i == len(akapity) - 1:
-            pauza = CISZA_NA_KONIEC_S
-        czesci.append(np.zeros(int(pauza * sr), dtype=np.float32))
-        print(f"  akapit {i + 1}/{len(akapity)}  ({time.time() - t0:.0f} s)")
+    for ujecie in range(1, a.ujecia + 1):
+        # Stałe ziarno = powtarzalne ujęcie (to samo ujęcie da się odtworzyć później).
+        np.random.seed(ujecie)
+        dopisek = f"_ujecie{ujecie}" if a.ujecia > 1 else ""
+        cel = FOLDER_AUDIO / bid / f"{bid}_{wer}_supertonic_{a.glos}{dopisek}.wav"
+        cel.parent.mkdir(parents=True, exist_ok=True)
+        print(f"\n=== Ujęcie {ujecie}/{a.ujecia} → {cel.name}")
+        czesci = []
+        t0 = time.time()
+        for i, akapit in enumerate(akapity):
+            wav, _ = tts.synthesize(
+                akapit, voice_style=styl, lang="pl", speed=a.tempo,
+                total_steps=a.kroki, silence_duration=PAUZA_ZDANIA_S,
+            )
+            czesci.append(wav.reshape(-1).astype(np.float32))
+            pauza = PAUZA_WYCISZENIE_S if i >= start_wyciszenia else PAUZA_AKAPIT_S
+            if i == len(akapity) - 1:
+                pauza = CISZA_NA_KONIEC_S
+            czesci.append(np.zeros(int(pauza * sr), dtype=np.float32))
+            print(f"  akapit {i + 1}/{len(akapity)}  ({time.time() - t0:.0f} s)")
+        calosc = np.concatenate(czesci)[None, :]
+        tts.save_audio(calosc, str(cel))
+        print(f"  zapisano: {cel}  ({calosc.shape[1] / sr / 60:.1f} min, liczenie {time.time() - t0:.0f} s)")
 
-    calosc = np.concatenate(czesci)[None, :]
-    tts.save_audio(calosc, str(cel))
-    print(f"\nGotowe: {cel}  ({calosc.shape[1] / sr / 60:.1f} min, liczenie {time.time() - t0:.0f} s)")
-    print("Napisz Claude „jest”, a sprawdzi nagranie i przygotuje wersję do odsłuchu.")
+    print("\nGotowe. Napisz Claude „jest”, a sprawdzi nagrania i przygotuje wersje do odsłuchu.")
 
 
 if __name__ == "__main__":
