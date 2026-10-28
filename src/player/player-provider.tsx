@@ -62,6 +62,8 @@ type PlayerState = {
   pause: () => void;
   stopMelody: () => void;
   seekBy: (seconds: number) => void;
+  /** Przeskok do konkretnego miejsca bajki (w sekundach), np. z suwaka. */
+  seekTo: (seconds: number) => void;
 };
 
 const PlayerContext = createContext<PlayerState | null>(null);
@@ -148,6 +150,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     [player, status.currentTime, status.duration]
   );
 
+  const seekTo = useCallback(
+    (seconds: number) => {
+      const target = Math.min(Math.max(0, seconds), Math.max(0, status.duration - 1));
+      player.seekTo(target).catch(() => {});
+      if (story) savePosition(story.id, target);
+    },
+    [player, status.duration, story, savePosition]
+  );
+
   const setAfterStory = useCallback(
     (mode: AfterStory) => {
       update({ afterStory: mode });
@@ -203,6 +214,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         pause,
         stopMelody,
         seekBy,
+        seekTo,
       }}>
       {children}
     </PlayerContext>

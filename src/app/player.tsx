@@ -6,13 +6,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Cover } from '@/components/cover';
 import { Icon } from '@/components/icon';
+import { SeekBar } from '@/components/seek-bar';
 import { Txt } from '@/components/txt';
 import { goBack, SkyBackground, usePalette, WoodenBackButton, useDaypartNavBar } from '@/components/ui';
 import { useDownloads } from '@/data/downloads-provider';
 import { useSettings } from '@/data/settings-provider';
 import { afterStoryLabel } from '@/logic/resume';
 import { usePlayer } from '@/player/player-provider';
-import { formatDuration } from '@/theme';
 import { uiIcons } from '@/ui/media';
 
 const SEEK_SECONDS = 15;
@@ -100,9 +100,8 @@ export default function PlayerScreen() {
   useDaypartNavBar();
   const insets = useSafeAreaInsets();
   const palette = usePalette();
-  const { story, playing, isBuffering, currentTime, duration, hasError, afterStory, melodyPlaying, toggle, seekBy } = usePlayer();
+  const { story, playing, isBuffering, currentTime, duration, hasError, afterStory, melodyPlaying, toggle, seekBy, seekTo } = usePlayer();
 
-  const progress = duration > 0 ? Math.min(1, currentTime / duration) : 0;
   const chip = {
     flex: 1,
     height: 48,
@@ -141,23 +140,7 @@ export default function PlayerScreen() {
             )}
           </View>
 
-          <View
-            style={{ width: '100%', gap: 8 }}
-            accessible
-            accessibilityRole="progressbar"
-            accessibilityLabel={`Postęp: ${formatDuration(currentTime)} z ${formatDuration(duration)}`}>
-            <View style={{ height: 6, borderRadius: 3, backgroundColor: palette.progressTrack }}>
-              <View style={{ width: `${progress * 100}%`, height: 6, borderRadius: 3, backgroundColor: palette.accent }} />
-            </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Txt size={13} color={palette.textMuted} style={{ fontVariant: ['tabular-nums'] }}>
-                {formatDuration(currentTime)}
-              </Txt>
-              <Txt size={13} color={palette.textMuted} style={{ fontVariant: ['tabular-nums'] }}>
-                {formatDuration(duration)}
-              </Txt>
-            </View>
-          </View>
+          <SeekBar currentTime={currentTime} duration={duration} onSeek={seekTo} step={SEEK_SECONDS} />
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 36 }}>
             <SeekButton seconds={-SEEK_SECONDS} onPress={() => seekBy(-SEEK_SECONDS)} />

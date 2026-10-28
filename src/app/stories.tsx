@@ -1,4 +1,4 @@
-import { FlatList, Pressable, View } from 'react-native';
+import { FlatList, Pressable, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Cover } from '@/components/cover';
@@ -17,6 +17,9 @@ export default function AllStoriesScreen() {
   const palette = usePalette();
   const { stories } = useCatalog();
   const start = useStartStory();
+  const { width } = useWindowDimensions();
+  // Dwie kolumny: 20 px marginesu z każdej strony i 12 px odstępu między kartami.
+  const cardWidth = Math.floor((width - 40 - 12) / 2);
 
   return (
     <SkyBackground>
@@ -38,14 +41,15 @@ export default function AllStoriesScreen() {
             accessibilityRole="button"
             accessibilityLabel={`Słuchaj: ${item.title}, ${formatMinutes(item.durationSec)}`}
             style={({ pressed }) => ({
-              flex: 1,
+              // Stała szerokość połowy kolumny: pojedyncza bajka w ostatnim rzędzie nie rozciąga się na całą szerokość.
+              width: cardWidth,
               backgroundColor: palette.card,
               borderRadius: 18,
               padding: 8,
               gap: 6,
               opacity: pressed ? 0.8 : 1,
             })}>
-            <Cover story={item} width="100%" height={110} radius={13} placeholderColor={palette.coverPlaceholder} />
+            <Cover story={item} width={cardWidth - 16} height={cardWidth - 16} radius={13} placeholderColor={palette.coverPlaceholder} />
             <Txt weight="bold" size={15} color={palette.text} numberOfLines={2}>
               {item.title}
             </Txt>
