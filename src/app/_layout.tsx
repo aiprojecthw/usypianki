@@ -13,6 +13,7 @@ import { useEffect } from 'react';
 
 import { CatalogProvider } from '@/data/catalog-provider';
 import { DownloadsProvider } from '@/data/downloads-provider';
+import { PurchaseProvider } from '@/data/purchase-provider';
 import { SettingsProvider, useSettings } from '@/data/settings-provider';
 import { PlayerProvider } from '@/player/player-provider';
 import { palettes, parent } from '@/theme';
@@ -71,6 +72,7 @@ export default function RootLayout() {
 
   return (
     <SettingsProvider>
+      <PurchaseProvider>
       <CatalogProvider>
         <DownloadsProvider>
           <PlayerProvider>
@@ -78,6 +80,7 @@ export default function RootLayout() {
           </PlayerProvider>
         </DownloadsProvider>
       </CatalogProvider>
+      </PurchaseProvider>
     </SettingsProvider>
   );
 }

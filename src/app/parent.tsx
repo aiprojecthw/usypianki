@@ -8,6 +8,7 @@ import { Icon } from '@/components/icon';
 import { Txt } from '@/components/txt';
 import { ParentHeader, PillButton, useNavBarStyle } from '@/components/ui';
 import { useDownloads } from '@/data/downloads-provider';
+import { usePurchase } from '@/data/purchase-provider';
 import { useSettings } from '@/data/settings-provider';
 import { formatClock, shiftBound, type DaypartBounds } from '@/logic/daypart';
 import { formatMegabytes, parent, storiesCount } from '@/theme';
@@ -57,7 +58,15 @@ export default function ParentZone() {
   const { settings, update } = useSettings();
   const { downloaded, totalBytes } = useDownloads();
   const { bounds } = settings;
-  const purchased = settings.offlinePurchased;
+  const { owned: purchased, pending, price, busy, restore } = usePurchase();
+
+  const onRestore = async () => {
+    const result = await restore();
+    if (result === 'owned') Alert.alert('Zakup przywrócony', 'Słuchanie bez internetu jest odblokowane.');
+    else if (result === 'pending') Alert.alert('Płatność w toku', 'Google jeszcze nie potwierdził płatności. Pobieranie odblokuje się samo.');
+    else if (result === 'none') Alert.alert('Nie znaleziono zakupu', 'Na tym koncie Google nie ma zakupu „Słuchanie bez internetu”. Sprawdź, czy telefon jest zalogowany na konto, którym płaciłeś.');
+    else Alert.alert('Sklep niedostępny', 'Nie udało się połączyć z Google Play. Sprawdź internet i spróbuj ponownie.');
+  };
   const downloadedCount = Object.keys(downloaded).length;
 
   const shift = (key: keyof DaypartBounds) => (delta: number) => update({ bounds: shiftBound(bounds, key, delta) });
@@ -98,37 +107,25 @@ export default function ParentZone() {
               </Txt>
               <Icon name="chevronRight" size={20} color={parent.accent} />
             </Pressable>
-            <Pressable
-              onPress={() =>
-                Alert.alert('Cofnąć zakup testowy?', 'Tylko w wersji testowej: pobieranie znów będzie zablokowane.', [
-                  { text: 'Anuluj', style: 'cancel' },
-                  { text: 'Cofnij', onPress: () => update({ offlinePurchased: false }) },
-                ])
-              }
-              accessibilityRole="button"
-              style={{ minHeight: 44, justifyContent: 'center' }}>
-              <Txt size={13} color={parent.textMuted} style={{ textDecorationLine: 'underline' }}>
-                Wersja testowa: cofnij zakup
-              </Txt>
-            </Pressable>
           </>
         ) : (
           <>
             <Txt size={14} color={parent.textSoft}>
               Bajki słuchasz online za darmo. Pobieranie bajek na telefon to osobna funkcja, kupowana jednorazowo.
             </Txt>
-            <PillButton label="Więcej · 9,99 zł" onPress={() => router.push('/purchase')} height={52} />
+            {pending && (
+              <Txt size={14} color={parent.textSoft}>
+                Płatność w toku. Pobieranie odblokuje się samo, gdy Google ją potwierdzi.
+              </Txt>
+            )}
+            <PillButton label={price ? `Więcej · ${price}` : 'Więcej'} onPress={() => router.push('/purchase')} height={52} />
             <Pressable
-              onPress={() =>
-                Alert.alert(
-                  'Przywracanie zakupu',
-                  'W wydaniu w Google Play zakup przywróci się z Twojego konta Google. W wersji testowej nie ma czego przywracać.'
-                )
-              }
+              onPress={onRestore}
+              disabled={busy}
               accessibilityRole="button"
               style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
               <Txt weight="bold" size={14} color={parent.textSoft} style={{ textDecorationLine: 'underline' }}>
-                Przywróć zakup
+                {busy ? 'Sprawdzam…' : 'Przywróć zakup'}
               </Txt>
             </Pressable>
           </>

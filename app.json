@@ -29,6 +29,8 @@
     },
     "plugins": [
       "expo-router",
+      ["expo-iap", { "android": { "store": "play" } }],
+      "./plugins/with-release-signing",
       [
         "expo-splash-screen",
         {

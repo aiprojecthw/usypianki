@@ -13,8 +13,8 @@ export type Settings = {
   /** Co po bajce: cisza albo melodia. Zapamiętywane z wyboru w odtwarzaczu. */
   afterStory: AfterStory;
   /**
-   * Czy funkcja pobierania jest odblokowana. W wersji testowej przełączana
-   * w Strefie rodzica bez płatności; w wydaniu sklepowym ustawia ją RevenueCat.
+   * Czy funkcja pobierania jest odblokowana. Ustawia ją PurchaseProvider na podstawie
+   * zakupów w Google Play; zapis w telefonie pozwala korzystać z niej bez internetu.
    */
   offlinePurchased: boolean;
   /** id bajki → sekunda, na której przerwano */

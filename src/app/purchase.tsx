@@ -1,33 +1,34 @@
 import { router } from 'expo-router';
-import { View } from 'react-native';
+import { useEffect } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
 import { Txt } from '@/components/txt';
 import { goBack, ParentHeader, PillButton, useNavBarStyle } from '@/components/ui';
-import { useSettings } from '@/data/settings-provider';
+import { usePurchase } from '@/data/purchase-provider';
 import { parent } from '@/theme';
 
 const BENEFITS = [
   'Przycisk „Pobierz” przy każdej dostępnej bajce',
   'Jedna płatność, bez subskrypcji i bez reklam',
-  'Zakup działa na każdym telefonie z tym samym kontem Google',
-  'Kupujesz funkcję pobierania, a nie same bajki',
+  'Zakup przywrócisz na każdym telefonie z tym samym kontem Google',
+  'Kupujesz funkcję pobierania, a nie same bajki — te zostają darmowe',
 ];
 
-/**
- * Zakup funkcji offline. W tej wersji testowej przycisk odblokowuje funkcję
- * bez płatności; w wydaniu sklepowym zostanie podpięty RevenueCat + Google Play.
- */
+/** Zakup funkcji offline przez Google Play. Ekran widzi tylko rodzic (za bramką). */
 export default function PurchaseScreen() {
   useNavBarStyle('light');
   const insets = useSafeAreaInsets();
-  const { update } = useSettings();
+  const { owned, pending, price, storeStatus, busy, error, buy } = usePurchase();
 
-  const buy = () => {
-    update({ offlinePurchased: true });
-    router.dismissTo('/downloads');
-  };
+  // Po udanym zakupie wracamy do „Pobranych”, gdzie od razu widać, co dalej.
+  useEffect(() => {
+    if (owned) router.dismissTo('/downloads');
+  }, [owned]);
+
+  const unavailable = storeStatus === 'unavailable';
+  const label = pending ? 'Płatność w toku' : price ? `Kup · ${price}` : 'Kup';
 
   return (
     <View style={{ flex: 1, backgroundColor: parent.background, paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24, paddingHorizontal: 24 }}>
@@ -55,17 +56,38 @@ export default function PurchaseScreen() {
       </View>
 
       <View style={{ gap: 12 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: 8 }}>
-          <Txt weight="extrabold" size={32} color={parent.text}>
-            9,99 zł
-          </Txt>
-          <Txt size={15} color={parent.textMuted}>
-            jednorazowo
-          </Txt>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: 8, minHeight: 44 }}>
+          {price ? (
+            <>
+              <Txt weight="extrabold" size={32} color={parent.text}>
+                {price}
+              </Txt>
+              <Txt size={15} color={parent.textMuted}>
+                jednorazowo
+              </Txt>
+            </>
+          ) : storeStatus === 'connecting' ? (
+            <ActivityIndicator color={parent.textMuted} />
+          ) : null}
         </View>
-        <PillButton label="Odblokuj · wersja testowa" onPress={buy} height={56} />
+        <PillButton label={label} onPress={buy} height={56} disabled={unavailable || pending || busy || !price} />
+        {pending && (
+          <Txt size={13} color={parent.textSoft} style={{ textAlign: 'center' }}>
+            Google czeka na potwierdzenie płatności. Pobieranie odblokuje się samo, gdy płatność dojdzie.
+          </Txt>
+        )}
+        {unavailable && (
+          <Txt size={13} color={parent.textSoft} style={{ textAlign: 'center' }}>
+            Sklep Google Play jest teraz niedostępny. Sprawdź internet i otwórz ten ekran ponownie.
+          </Txt>
+        )}
+        {error && (
+          <Txt size={13} color={parent.danger} style={{ textAlign: 'center' }} accessibilityLiveRegion="polite">
+            {error}
+          </Txt>
+        )}
         <Txt size={12} color={parent.textMuted} style={{ textAlign: 'center' }}>
-          Wersja testowa: odblokowanie bez płatności. W wydaniu w Google Play płatność obsłuży Google Play. Ten ekran widzi tylko rodzic.
+          Płatność obsługuje Google Play. Zwrot w ciągu 48 godzin zgłosisz bezpośrednio w Google Play.
         </Txt>
       </View>
     </View>
