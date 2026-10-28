@@ -32,7 +32,7 @@ assets/ui, assets/video, assets/stories, assets/covers
 
 ## Katalog bajek (Cloudflare R2)
 
-Adres katalogu ustawia się w `app.json` (`extra.catalogUrl`); obecnie testowy adres r2.dev bucketu `usypianki`: `…r2.dev/katalog.json` (przed publikacją: własna domena).
+Adres katalogu ustawia się w `app.json` (`extra.catalogUrl`); adres: `https://bajki.usypianki.com/katalog.json` (domena usypianki.com podpięta do bucketu `usypianki` w Cloudflare R2).
 Format opisuje `src/data/types.ts` (tytuł, czas, adres MP3, okładka, wiek, `publishAt` do planowania premier).
 Nowa bajka = MP3 w buckecie + wpis w `catalog.json`; aktualizacja aplikacji nie jest potrzebna.
 Bez internetu przy pierwszym uruchomieniu aplikacja pokazuje bajki testowe dołączone do aplikacji; potem ostatni pobrany katalog.

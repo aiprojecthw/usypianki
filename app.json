@@ -57,7 +57,9 @@
       "reactCompiler": true
     },
     "extra": {
-      "catalogUrl": "https://pub-3976f58b2efb4a31b41aefbfa650998c.r2.dev/katalog.json",
+      "catalogUrl": "https://bajki.usypianki.com/katalog.json",
+      "privacyPolicyUrl": "https://bajki.usypianki.com/polityka-prywatnosci.html",
+      "contactEmail": "kontakt@usypianki.com",
       "eas": {
         "projectId": "8d73090e-7faa-45aa-8344-c1d892f9f49c"
       }
