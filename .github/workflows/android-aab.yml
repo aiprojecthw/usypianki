@@ -76,8 +76,17 @@ jobs:
         env:
           KS: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
         run: |
-          echo "$KS" | base64 -d > "$RUNNER_TEMP/upload.p12"
+          echo "$KS" | tr -d ' \r\n' | base64 -d > "$RUNNER_TEMP/upload.p12" || { echo "::error::UPLOAD_KEYSTORE_BASE64 nie jest poprawnym base64 (sprawdź, czy wklejona cała linia)"; exit 1; }
           echo "UPLOAD_STORE_FILE=$RUNNER_TEMP/upload.p12" >> "$GITHUB_ENV"
+
+      - name: Sprawdzenie klucza i haseł
+        env:
+          UPLOAD_STORE_PASSWORD: ${{ secrets.UPLOAD_STORE_PASSWORD }}
+          UPLOAD_KEY_ALIAS: ${{ secrets.UPLOAD_KEY_ALIAS }}
+        run: |
+          OUT=$(keytool -list -keystore "$UPLOAD_STORE_FILE" -storepass "$UPLOAD_STORE_PASSWORD" -alias "$UPLOAD_KEY_ALIAS" 2>&1) || {
+            echo "::error::Klucz nie otwiera się: $(echo "$OUT" | head -3 | tr '\n' ' ')"; exit 1; }
+          echo "Klucz OK (alias $UPLOAD_KEY_ALIAS)"
 
       - name: Budowanie AAB
         working-directory: android
@@ -85,7 +94,12 @@ jobs:
           UPLOAD_STORE_PASSWORD: ${{ secrets.UPLOAD_STORE_PASSWORD }}
           UPLOAD_KEY_ALIAS: ${{ secrets.UPLOAD_KEY_ALIAS }}
           UPLOAD_KEY_PASSWORD: ${{ secrets.UPLOAD_KEY_PASSWORD }}
-        run: ./gradlew bundleRelease --no-daemon
+        run: |
+          set -o pipefail
+          ./gradlew bundleRelease --no-daemon 2>&1 | tee "$RUNNER_TEMP/gradle.log" || {
+            MSG=$(grep -A 12 "What went wrong" "$RUNNER_TEMP/gradle.log" | head -14 | tr '\n' ' ' | cut -c1-900)
+            [ -z "$MSG" ] && MSG=$(tail -15 "$RUNNER_TEMP/gradle.log" | tr '\n' ' ' | cut -c1-900)
+            echo "::error::Gradle: $MSG"; exit 1; }
 
       - name: Sprawdzenie podpisu
         run: |
