@@ -21,10 +21,11 @@ jobs:
   aab:
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    env:
-      VERSION_CODE: ${{ 100 + github.run_number }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Numer versionCode
+        run: echo "VERSION_CODE=$((100 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
 
       - name: Sprawdzenie sekretów podpisu
         env:
