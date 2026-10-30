@@ -76,6 +76,11 @@ export default function PurchaseScreen() {
             Google czeka na potwierdzenie płatności. Pobieranie odblokuje się samo, gdy płatność dojdzie.
           </Txt>
         )}
+        {storeStatus === 'ready' && !price && !pending && (
+          <Txt size={13} color={parent.textSoft} style={{ textAlign: 'center' }}>
+            Zakup jest chwilowo niedostępny. Spróbuj ponownie później.
+          </Txt>
+        )}
         {unavailable && (
           <Txt size={13} color={parent.textSoft} style={{ textAlign: 'center' }}>
             Sklep Google Play jest teraz niedostępny. Sprawdź internet i otwórz ten ekran ponownie.

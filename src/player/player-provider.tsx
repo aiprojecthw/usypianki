@@ -13,6 +13,7 @@ import { useDownloads } from '@/data/downloads-provider';
 import { useSettings } from '@/data/settings-provider';
 import { isBundled, type Story } from '@/data/types';
 import { resumePosition, type AfterStory } from '@/logic/resume';
+import { clampSeekTarget, seekReturnsToStory } from '@/logic/seek';
 import { bundledAudio, afterStoryMelody } from '@/ui/media';
 
 export type { AfterStory };
@@ -41,6 +42,26 @@ function resume(player: AudioPlayer, restart: boolean) {
   if (restart) player.seekTo(0).catch(() => {});
   player.volume = 1;
   player.play();
+}
+
+/**
+ * Powrót z melodii do bajki: melodia cichnie, bajka gra od `target`
+ * i znów steruje nią ekran blokady (wcześniej przejęła go melodia).
+ */
+function backToStory(story: AudioPlayer, melody: AudioPlayer, target: number, title: string) {
+  stopPlayer(melody);
+  story
+    .seekTo(target)
+    .catch(() => {})
+    .finally(() => {
+      story.volume = 1;
+      story.play();
+      story.setActiveForLockScreen(
+        true,
+        { title, artist: 'Usypianki' },
+        { showSeekBackward: true, showSeekForward: true }
+      );
+    });
 }
 
 type PlayerState = {
@@ -142,21 +163,30 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [player, story, pause, stopMelody, melodyStatus.playing, status.playing, status.didJustFinish, status.currentTime, status.duration]);
 
-  const seekBy = useCallback(
-    (seconds: number) => {
-      const target = Math.min(Math.max(0, status.currentTime + seconds), Math.max(0, status.duration - 1));
-      player.seekTo(target).catch(() => {});
+  /** Wspólne przewinięcie bajki; w trakcie melodii wraca do bajki zamiast grać obie naraz. */
+  const seekStory = useCallback(
+    (target: number) => {
+      if (story && seekReturnsToStory(melodyStatus.playing)) {
+        backToStory(player, melody, target, story.title);
+      } else {
+        player.seekTo(target).catch(() => {});
+      }
+      if (story) {
+        lastSaved.current = target;
+        savePosition(story.id, target);
+      }
     },
-    [player, status.currentTime, status.duration]
+    [player, melody, story, melodyStatus.playing, savePosition]
+  );
+
+  const seekBy = useCallback(
+    (seconds: number) => seekStory(clampSeekTarget(status.currentTime + seconds, status.duration)),
+    [seekStory, status.currentTime, status.duration]
   );
 
   const seekTo = useCallback(
-    (seconds: number) => {
-      const target = Math.min(Math.max(0, seconds), Math.max(0, status.duration - 1));
-      player.seekTo(target).catch(() => {});
-      if (story) savePosition(story.id, target);
-    },
-    [player, status.duration, story, savePosition]
+    (seconds: number) => seekStory(clampSeekTarget(seconds, status.duration)),
+    [seekStory, status.duration]
   );
 
   const setAfterStory = useCallback(
